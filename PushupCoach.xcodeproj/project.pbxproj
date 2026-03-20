@@ -16,7 +16,23 @@
 		B000000000000000000007 /* RepCountingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000007 /* RepCountingEngine.swift */; };
 		B000000000000000000008 /* FormScoringEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000008 /* FormScoringEngine.swift */; };
 		B000000000000000000009 /* LandmarkOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000009 /* LandmarkOverlayView.swift */; };
+		B00000000000000000000C /* VisionOrientation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000D /* VisionOrientation.swift */; };
+		B00000000000000000000D /* LandmarkSmoother.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000E /* LandmarkSmoother.swift */; };
+		B00000000000000000000E /* PoseTrackingGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000F /* PoseTrackingGate.swift */; };
+		B00000000000000000000F /* WorkoutOrientationLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000010 /* WorkoutOrientationLock.swift */; };
 		B00000000000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000B /* Assets.xcassets */; };
+		B000000000000000000011 /* MediaPipePoseProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000011 /* MediaPipePoseProvider.swift */; };
+		B000000000000000000012 /* FeedbackEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000012 /* FeedbackEngine.swift */; };
+		B000000000000000000013 /* DepthBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000013 /* DepthBarView.swift */; };
+		B000000000000000000014 /* pose_landmarker_full.task in Resources */ = {isa = PBXBuildFile; fileRef = A000000000000000000014 /* pose_landmarker_full.task */; };
+		B000000000000000000015 /* CapturePortraitConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000015 /* CapturePortraitConfiguration.swift */; };
+		B000000000000000000016 /* face_landmarker.task in Resources */ = {isa = PBXBuildFile; fileRef = A000000000000000000016 /* face_landmarker.task */; };
+		B000000000000000000017 /* MediaPipeFaceDebugProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000017 /* MediaPipeFaceDebugProvider.swift */; };
+		B000000000000000000018 /* FaceDebugCameraManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000018 /* FaceDebugCameraManager.swift */; };
+		B000000000000000000019 /* FaceOrientationTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019 /* FaceOrientationTestView.swift */; };
+		B00000000000000000001A /* PushupPoseConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000001A /* PushupPoseConstants.swift */; };
+		B00000000000000000001B /* CoachingOverlayViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000001B /* CoachingOverlayViews.swift */; };
+		BPKG0000000000000000001 /* SwiftTasksVision in Frameworks */ = {isa = PBXBuildFile; productRef = PPKG0000000000000000001 /* SwiftTasksVision */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +48,21 @@
 		A00000000000000000000A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A00000000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		A00000000000000000000C /* PushupCoach.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PushupCoach.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000D /* VisionOrientation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionOrientation.swift; sourceTree = "<group>"; };
+		A00000000000000000000E /* LandmarkSmoother.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkSmoother.swift; sourceTree = "<group>"; };
+		A00000000000000000000F /* PoseTrackingGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseTrackingGate.swift; sourceTree = "<group>"; };
+		A000000000000000000010 /* WorkoutOrientationLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutOrientationLock.swift; sourceTree = "<group>"; };
+		A000000000000000000011 /* MediaPipePoseProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPipePoseProvider.swift; sourceTree = "<group>"; };
+		A000000000000000000012 /* FeedbackEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FeedbackEngine.swift; sourceTree = "<group>"; };
+		A000000000000000000013 /* DepthBarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DepthBarView.swift; sourceTree = "<group>"; };
+		A000000000000000000014 /* pose_landmarker_full.task */ = {isa = PBXFileReference; lastKnownFileType = file; path = pose_landmarker_full.task; sourceTree = "<group>"; };
+		A000000000000000000015 /* CapturePortraitConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CapturePortraitConfiguration.swift; sourceTree = "<group>"; };
+		A000000000000000000016 /* face_landmarker.task */ = {isa = PBXFileReference; lastKnownFileType = file; path = face_landmarker.task; sourceTree = "<group>"; };
+		A000000000000000000017 /* MediaPipeFaceDebugProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MediaPipeFaceDebugProvider.swift; sourceTree = "<group>"; };
+		A000000000000000000018 /* FaceDebugCameraManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceDebugCameraManager.swift; sourceTree = "<group>"; };
+		A000000000000000000019 /* FaceOrientationTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceOrientationTestView.swift; sourceTree = "<group>"; };
+		A00000000000000000001A /* PushupPoseConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushupPoseConstants.swift; sourceTree = "<group>"; };
+		A00000000000000000001B /* CoachingOverlayViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingOverlayViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -39,6 +70,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				BPKG0000000000000000001 /* SwiftTasksVision in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -59,12 +91,26 @@
 				A000000000000000000001 /* PushupCoachApp.swift */,
 				A000000000000000000003 /* PoseProvider.swift */,
 				A000000000000000000004 /* AppleVisionPoseProvider.swift */,
+				A000000000000000000011 /* MediaPipePoseProvider.swift */,
+				A000000000000000000017 /* MediaPipeFaceDebugProvider.swift */,
+				A000000000000000000018 /* FaceDebugCameraManager.swift */,
+				A000000000000000000019 /* FaceOrientationTestView.swift */,
 				A000000000000000000005 /* CameraManager.swift */,
 				A000000000000000000006 /* CameraPreviewView.swift */,
+				A000000000000000000015 /* CapturePortraitConfiguration.swift */,
 				A000000000000000000007 /* RepCountingEngine.swift */,
 				A000000000000000000008 /* FormScoringEngine.swift */,
 				A000000000000000000009 /* LandmarkOverlayView.swift */,
+				A000000000000000000013 /* DepthBarView.swift */,
+				A000000000000000000012 /* FeedbackEngine.swift */,
+				A00000000000000000000D /* VisionOrientation.swift */,
+				A00000000000000000000E /* LandmarkSmoother.swift */,
+				A00000000000000000000F /* PoseTrackingGate.swift */,
+				A000000000000000000010 /* WorkoutOrientationLock.swift */,
 				A000000000000000000002 /* Phase0TestView.swift */,
+				A00000000000000000001A /* PushupPoseConstants.swift */,
+				A00000000000000000001B /* CoachingOverlayViews.swift */,
+				C000000000000000000004 /* Models */,
 				A00000000000000000000A /* Info.plist */,
 				A00000000000000000000B /* Assets.xcassets */,
 			);
@@ -77,6 +123,15 @@
 				A00000000000000000000C /* PushupCoach.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		C000000000000000000004 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				A000000000000000000014 /* pose_landmarker_full.task */,
+				A000000000000000000016 /* face_landmarker.task */,
+			);
+			path = Models;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -95,6 +150,9 @@
 			dependencies = (
 			);
 			name = PushupCoach;
+			packageProductDependencies = (
+				PPKG0000000000000000001 /* SwiftTasksVision */,
+			);
 			productName = PushupCoach;
 			productReference = A00000000000000000000C /* PushupCoach.app */;
 			productType = "com.apple.product-type.application";
@@ -118,6 +176,9 @@
 				Base,
 			);
 			mainGroup = C000000000000000000001;
+			packageReferences = (
+				RPKG0000000000000000001 /* XCRemoteSwiftPackageReference "SwiftTasksVision" */,
+			);
 			productRefGroup = C000000000000000000003 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
@@ -133,6 +194,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				B00000000000000000000B /* Assets.xcassets in Resources */,
+				B000000000000000000014 /* pose_landmarker_full.task in Resources */,
+				B000000000000000000016 /* face_landmarker.task in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -147,11 +210,24 @@
 				B000000000000000000002 /* Phase0TestView.swift in Sources */,
 				B000000000000000000003 /* PoseProvider.swift in Sources */,
 				B000000000000000000004 /* AppleVisionPoseProvider.swift in Sources */,
+				B000000000000000000011 /* MediaPipePoseProvider.swift in Sources */,
+				B000000000000000000017 /* MediaPipeFaceDebugProvider.swift in Sources */,
+				B000000000000000000018 /* FaceDebugCameraManager.swift in Sources */,
+				B000000000000000000019 /* FaceOrientationTestView.swift in Sources */,
+				B00000000000000000001A /* PushupPoseConstants.swift in Sources */,
+				B00000000000000000001B /* CoachingOverlayViews.swift in Sources */,
 				B000000000000000000005 /* CameraManager.swift in Sources */,
 				B000000000000000000006 /* CameraPreviewView.swift in Sources */,
+				B000000000000000000015 /* CapturePortraitConfiguration.swift in Sources */,
 				B000000000000000000007 /* RepCountingEngine.swift in Sources */,
 				B000000000000000000008 /* FormScoringEngine.swift in Sources */,
 				B000000000000000000009 /* LandmarkOverlayView.swift in Sources */,
+				B000000000000000000013 /* DepthBarView.swift in Sources */,
+				B000000000000000000012 /* FeedbackEngine.swift in Sources */,
+				B00000000000000000000C /* VisionOrientation.swift in Sources */,
+				B00000000000000000000D /* LandmarkSmoother.swift in Sources */,
+				B00000000000000000000E /* PoseTrackingGate.swift in Sources */,
+				B00000000000000000000F /* WorkoutOrientationLock.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -345,6 +421,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		RPKG0000000000000000001 /* XCRemoteSwiftPackageReference "SwiftTasksVision" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/paescebu/SwiftTasksVision.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.10.21;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		PPKG0000000000000000001 /* SwiftTasksVision */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = RPKG0000000000000000001 /* XCRemoteSwiftPackageReference "SwiftTasksVision" */;
+			productName = SwiftTasksVision;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 300000000000000000000001 /* Project object */;
 }

@@ -13,12 +13,13 @@ final class FormScoringEngine {
     func computeScores(from reps: [RepCountingEngine.RepMeasurement]) -> FormScores? {
         guard reps.count >= 2 else { return nil }
 
-        let depthScore = computeDepthScore(reps)
-        let alignmentScore = computeAlignmentScore(reps)
-        let consistencyScore = computeConsistencyScore(reps)
+        let hasWorld = reps.first?.minWorldY != nil
+        let depthScore = hasWorld ? computeDepthScoreWorld(reps) : computeDepthScore(reps)
+        let alignmentScore = hasWorld ? computeAlignmentScoreWorld(reps) : computeAlignmentScore(reps)
+        let consistencyScore = hasWorld ? computeConsistencyScoreWorld(reps) : computeConsistencyScore(reps)
 
         let composite = Int(Double(depthScore) * 0.4 + Double(alignmentScore) * 0.3 + Double(consistencyScore) * 0.3)
-        let improvements = generateImprovements(depth: depthScore, alignment: alignmentScore, consistency: consistencyScore, reps: reps)
+        let improvements = generateImprovements(depth: depthScore, alignment: alignmentScore, consistency: consistencyScore, reps: reps, hasWorld: hasWorld)
 
         return FormScores(
             depth: depthScore,
@@ -29,7 +30,7 @@ final class FormScoringEngine {
         )
     }
 
-    // MARK: - Depth
+    // MARK: - Depth (screen-space)
 
     private func computeDepthScore(_ reps: [RepCountingEngine.RepMeasurement]) -> Int {
         let depths = reps.map { $0.minNoseY - $0.maxNoseY }
@@ -44,7 +45,28 @@ final class FormScoringEngine {
         return clampScore(score)
     }
 
-    // MARK: - Alignment
+    // MARK: - Depth (world coordinates)
+
+    private func computeDepthScoreWorld(_ reps: [RepCountingEngine.RepMeasurement]) -> Int {
+        let depths = reps.compactMap { rep -> Float? in
+            guard let minW = rep.minWorldY, let maxW = rep.maxWorldY else { return nil }
+            return maxW - minW
+        }
+        guard let maxDepth = depths.max(), maxDepth > 0 else { return 50 }
+
+        var score: Double = 0
+        for depth in depths {
+            let ratio = Double(depth / maxDepth)
+            score += min(ratio / 0.7, 1.0)
+        }
+        score = (score / Double(depths.count)) * 100
+        return clampScore(score)
+    }
+
+    // MARK: - Alignment (screen-space)
+    //
+    // Uses paired |leftShoulderY − rightShoulderY| per sample — invariant if image-left/right labels were
+    // swapped (e.g. mirrored front camera), so mirror settings do not bias this score by sign.
 
     private func computeAlignmentScore(_ reps: [RepCountingEngine.RepMeasurement]) -> Int {
         var totalAsymmetry: Double = 0
@@ -67,7 +89,30 @@ final class FormScoringEngine {
         return clampScore(score)
     }
 
-    // MARK: - Consistency
+    // MARK: - Alignment (world coordinates — meters)
+
+    private func computeAlignmentScoreWorld(_ reps: [RepCountingEngine.RepMeasurement]) -> Int {
+        var totalAsymmetry: Double = 0
+        var sampleCount = 0
+
+        for rep in reps {
+            let pairCount = min(rep.leftShoulderWorldYs.count, rep.rightShoulderWorldYs.count)
+            for i in 0..<pairCount {
+                let diff = abs(rep.leftShoulderWorldYs[i] - rep.rightShoulderWorldYs[i])
+                totalAsymmetry += Double(diff)
+                sampleCount += 1
+            }
+        }
+
+        guard sampleCount > 0 else { return 75 }
+
+        let avgAsymmetry = totalAsymmetry / Double(sampleCount)
+        let maxAcceptable = 0.035
+        let score = max(0, 1.0 - (avgAsymmetry / maxAcceptable)) * 100
+        return clampScore(score)
+    }
+
+    // MARK: - Consistency (screen-space)
 
     private func computeConsistencyScore(_ reps: [RepCountingEngine.RepMeasurement]) -> Int {
         let durations = reps.map { $0.durationSeconds }
@@ -82,17 +127,44 @@ final class FormScoringEngine {
         return clampScore(combined)
     }
 
+    // MARK: - Consistency (world coordinates)
+
+    private func computeConsistencyScoreWorld(_ reps: [RepCountingEngine.RepMeasurement]) -> Int {
+        let durations = reps.map { $0.durationSeconds }
+        let depths: [Double] = reps.compactMap { rep in
+            guard let minW = rep.minWorldY, let maxW = rep.maxWorldY else { return nil }
+            return Double(maxW - minW)
+        }
+
+        let durationCV = coefficientOfVariation(durations)
+        let depthCV = depths.count > 1 ? coefficientOfVariation(depths) : 0
+
+        let durationScore = max(0, 1.0 - durationCV) * 100
+        let depthScore = max(0, 1.0 - depthCV) * 100
+        let combined = (durationScore + depthScore) / 2.0
+        return clampScore(combined)
+    }
+
     // MARK: - Improvements
 
-    private func generateImprovements(depth: Int, alignment: Int, consistency: Int, reps: [RepCountingEngine.RepMeasurement]) -> [String] {
+    private func generateImprovements(depth: Int, alignment: Int, consistency: Int, reps: [RepCountingEngine.RepMeasurement], hasWorld: Bool) -> [String] {
         var suggestions: [(score: Int, text: String)] = []
 
         if depth < 80 {
-            let depthValues = reps.map { $0.minNoseY - $0.maxNoseY }
+            let depthValues: [Double]
+            if hasWorld {
+                depthValues = reps.compactMap { rep in
+                    guard let minW = rep.minWorldY, let maxW = rep.maxWorldY else { return nil }
+                    return Double(maxW - minW)
+                }
+            } else {
+                depthValues = reps.map { Double($0.minNoseY - $0.maxNoseY) }
+            }
+
             let lastThird = Array(depthValues.suffix(reps.count / 3 + 1))
             let firstThird = Array(depthValues.prefix(reps.count / 3 + 1))
-            let lastAvg = lastThird.reduce(CGFloat(0), +) / CGFloat(lastThird.count)
-            let firstAvg = firstThird.reduce(CGFloat(0), +) / CGFloat(firstThird.count)
+            let lastAvg = lastThird.isEmpty ? 0 : lastThird.reduce(0.0, +) / Double(lastThird.count)
+            let firstAvg = firstThird.isEmpty ? 0 : firstThird.reduce(0.0, +) / Double(firstThird.count)
 
             if lastAvg < firstAvg * 0.8 {
                 suggestions.append((depth, "Your depth dropped in the last few reps — try to maintain the same range even when tired."))

@@ -1,75 +1,151 @@
 import AVFoundation
+import CoreVideo
 import UIKit
+import ImageIO
 
 final class CameraManager: NSObject {
     let session = AVCaptureSession()
-    private let processingQueue = DispatchQueue(label: "com.pushupcoach.camera", qos: .userInteractive)
-    private var poseProvider: (any PoseProvider)?
 
-    var onPoseResult: ((PoseResult) -> Void)?
+    private let sessionQueue = DispatchQueue(label: "com.pushupcoach.capture.session", qos: .userInitiated)
+    private let processingQueue = DispatchQueue(label: "com.pushupcoach.camera", qos: .userInteractive)
+
+    private let providerLock = NSLock()
+    private var _poseProvider: (any PoseProvider)?
+
+    private var poseProvider: (any PoseProvider)? {
+        get {
+            providerLock.lock()
+            defer { providerLock.unlock() }
+            return _poseProvider
+        }
+        set {
+            providerLock.lock()
+            _poseProvider = newValue
+            providerLock.unlock()
+        }
+    }
+
+    private let devicePosition: AVCaptureDevice.Position = .front
+
+    var onPoseResult: ((PoseResult?) -> Void)?
     var onFrameProcessed: (() -> Void)?
 
-    func configure(provider: any PoseProvider) {
-        self.poseProvider = provider
-
-        session.beginConfiguration()
-        session.sessionPreset = .medium
-
-        if let existing = session.inputs.first {
-            session.removeInput(existing)
-        }
-        if let existing = session.outputs.first {
-            session.removeOutput(existing)
-        }
-
-        guard let camera = AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front),
-              let input = try? AVCaptureDeviceInput(device: camera) else {
-            session.commitConfiguration()
-            return
-        }
-
-        if session.canAddInput(input) {
-            session.addInput(input)
-        }
-
-        let videoOutput = AVCaptureVideoDataOutput()
-        videoOutput.alwaysDiscardsLateVideoFrames = true
-        videoOutput.setSampleBufferDelegate(self, queue: processingQueue)
-
-        if session.canAddOutput(videoOutput) {
-            session.addOutput(videoOutput)
-        }
-
-        if let connection = videoOutput.connection(with: .video) {
-            if connection.isVideoOrientationSupported {
-                connection.videoOrientation = .landscapeRight
-            }
-            if connection.isVideoMirroringSupported {
-                connection.isVideoMirrored = true
+    /// Picks front ultra-wide when available (wider FOV at arm’s length), else wide angle.
+    private static func preferredFrontCameraDevice() -> AVCaptureDevice? {
+        let discovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: [.builtInUltraWideCamera, .builtInWideAngleCamera],
+            mediaType: .video,
+            position: .front
+        )
+        let devices = discovery.devices
+        for device in devices where device.position == .front {
+            if device.deviceType == .builtInUltraWideCamera {
+                return device
             }
         }
+        if let first = devices.first { return first }
+        // Discovery can be empty on some runtimes; `default` still resolves the front camera.
+        return AVCaptureDevice.default(.builtInWideAngleCamera, for: .video, position: .front)
+    }
 
-        session.commitConfiguration()
+    /// Stops (if needed), reconfigures I/O, then starts. All session work runs on `sessionQueue` to avoid deadlocks on restart.
+    func configureAndStart(provider: any PoseProvider, completion: (() -> Void)? = nil) {
+        sessionQueue.async { [weak self] in
+            guard let self else {
+                DispatchQueue.main.async { completion?() }
+                return
+            }
+
+            self.poseProvider = provider
+
+            if self.session.isRunning {
+                self.session.stopRunning()
+                var spins = 0
+                while self.session.isRunning, spins < 200 {
+                    Thread.sleep(forTimeInterval: 0.025)
+                    spins += 1
+                }
+            }
+
+            self.session.beginConfiguration()
+            self.session.sessionPreset = .medium
+
+            for input in self.session.inputs {
+                self.session.removeInput(input)
+            }
+            for output in self.session.outputs {
+                self.session.removeOutput(output)
+            }
+
+            guard let camera = Self.preferredFrontCameraDevice(),
+                  let deviceInput = try? AVCaptureDeviceInput(device: camera) else {
+                self.session.commitConfiguration()
+                DispatchQueue.main.async { completion?() }
+                return
+            }
+
+            guard self.session.canAddInput(deviceInput) else {
+                self.session.commitConfiguration()
+                DispatchQueue.main.async { completion?() }
+                return
+            }
+            self.session.addInput(deviceInput)
+
+            let videoOutput = AVCaptureVideoDataOutput()
+            videoOutput.alwaysDiscardsLateVideoFrames = true
+            videoOutput.videoSettings = [
+                kCVPixelBufferPixelFormatTypeKey as String: Int(kCVPixelFormatType_32BGRA),
+            ]
+            videoOutput.setSampleBufferDelegate(self, queue: self.processingQueue)
+
+            guard self.session.canAddOutput(videoOutput) else {
+                self.session.commitConfiguration()
+                DispatchQueue.main.async { completion?() }
+                return
+            }
+            self.session.addOutput(videoOutput)
+
+            if let connection = videoOutput.connection(with: .video) {
+                CapturePortraitConfiguration.applyPortraitMirroredFrontCamera(to: connection)
+            }
+
+            self.session.commitConfiguration()
+            self.session.startRunning()
+
+            DispatchQueue.main.async {
+                completion?()
+            }
+        }
+    }
+
+    /// Stops capture and waits until the session is no longer running (on `sessionQueue`) before calling completion.
+    func stop(completion: (() -> Void)? = nil) {
+        sessionQueue.async { [weak self] in
+            guard let self else {
+                DispatchQueue.main.async { completion?() }
+                return
+            }
+            if self.session.isRunning {
+                self.session.stopRunning()
+                var spins = 0
+                while self.session.isRunning, spins < 200 {
+                    Thread.sleep(forTimeInterval: 0.025)
+                    spins += 1
+                }
+            }
+            DispatchQueue.main.async {
+                completion?()
+            }
+        }
     }
 
     func switchProvider(_ provider: any PoseProvider) {
-        processingQueue.async { [weak self] in
-            self?.poseProvider = provider
-        }
+        poseProvider = provider
     }
 
-    func start() {
-        processingQueue.async { [weak self] in
-            guard let self, !self.session.isRunning else { return }
-            self.session.startRunning()
-        }
-    }
-
-    func stop() {
-        processingQueue.async { [weak self] in
-            guard let self, self.session.isRunning else { return }
-            self.session.stopRunning()
-        }
+    func clearOutputCallbacks() {
+        onPoseResult = nil
+        onFrameProcessed = nil
     }
 }
 
@@ -77,9 +153,10 @@ extension CameraManager: AVCaptureVideoDataOutputSampleBufferDelegate {
     func captureOutput(_ output: AVCaptureOutput, didOutput sampleBuffer: CMSampleBuffer, from connection: AVCaptureConnection) {
         guard let provider = poseProvider else { return }
 
-        if let result = provider.detectPose(in: sampleBuffer) {
-            onPoseResult?(result)
-        }
+        let orientation = VisionOrientation.cgImageOrientation(from: connection, devicePosition: devicePosition)
+
+        let result = provider.detectPose(in: sampleBuffer, orientation: orientation)
+        onPoseResult?(result)
 
         onFrameProcessed?()
     }
