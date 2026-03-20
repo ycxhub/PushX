@@ -23,6 +23,8 @@ final class Phase0ViewModel: ObservableObject {
     @Published var workoutStateSubtitle: String = ""
     @Published var shoulderImbalanceMetric: CGFloat = 0
     @Published var repAnimToken: Int = 0
+    @Published var cameraErrorMessage: String?
+    @Published var isStartingCamera: Bool = false
 
     @Published var bodyDetected: Bool = false
     @Published var landmarksVisible: Bool = false
@@ -65,6 +67,31 @@ final class Phase0ViewModel: ObservableObject {
 
     func startCamera() {
         Task { @MainActor in
+            cameraErrorMessage = nil
+
+            let authorized: Bool
+            switch AVCaptureDevice.authorizationStatus(for: .video) {
+            case .authorized:
+                authorized = true
+            case .denied, .restricted:
+                cameraErrorMessage = "Camera access is off for PushupCoach. Enable it in Settings → Privacy & Security → Camera."
+                addDebug("Camera access denied — enable in Settings › Privacy & Camera")
+                return
+            case .notDetermined:
+                authorized = await AVCaptureDevice.requestAccess(for: .video)
+            @unknown default:
+                authorized = await AVCaptureDevice.requestAccess(for: .video)
+            }
+
+            guard authorized else {
+                cameraErrorMessage = "Camera access is required to start a session. You can enable it in Settings → Privacy & Security → Camera."
+                addDebug("Camera access denied after prompt")
+                return
+            }
+
+            isStartingCamera = true
+            defer { isStartingCamera = false }
+
             // MediaPipe (Metal) must initialize on the main thread; `Task.detached` here deadlocks
             // the main actor waiting on work that needs the main queue.
             let provider: any PoseProvider
@@ -77,16 +104,16 @@ final class Phase0ViewModel: ObservableObject {
                 provider = appleVisionProvider
             }
 
-            let authorized = await AVCaptureDevice.requestAccess(for: .video)
-            guard authorized else {
-                addDebug("Camera access denied — enable in Settings › Privacy › Camera")
-                return
+            let setupError: Error? = await withCheckedContinuation { cont in
+                cameraManager.configureAndStart(provider: provider) { error in
+                    cont.resume(returning: error)
+                }
             }
 
-            await withCheckedContinuation { (cont: CheckedContinuation<Void, Never>) in
-                cameraManager.configureAndStart(provider: provider) {
-                    cont.resume()
-                }
+            if let setupError {
+                cameraErrorMessage = setupError.localizedDescription
+                addDebug("Camera setup failed: \(setupError.localizedDescription)")
+                return
             }
 
             cameraManager.onPoseResult = { [weak self] result in
@@ -367,6 +394,14 @@ struct Phase0TestView: View {
         .preferredColorScheme(.dark)
         .statusBarHidden(viewModel.isRunning)
         .workoutLandscapeWhenActive(viewModel.isRunning)
+        .alert("Can’t start camera", isPresented: Binding(
+            get: { viewModel.cameraErrorMessage != nil },
+            set: { if !$0 { viewModel.cameraErrorMessage = nil } }
+        )) {
+            Button("OK", role: .cancel) { viewModel.cameraErrorMessage = nil }
+        } message: {
+            Text(viewModel.cameraErrorMessage ?? "")
+        }
     }
 
     // MARK: - Start
@@ -416,14 +451,22 @@ struct Phase0TestView: View {
             Button {
                 viewModel.startCamera()
             } label: {
-                Text("Start Camera")
-                    .font(.headline)
-                    .foregroundStyle(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color(red: 1.0, green: 0.42, blue: 0.42))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                HStack(spacing: 10) {
+                    if viewModel.isStartingCamera {
+                        ProgressView()
+                            .tint(.black)
+                    }
+                    Text(viewModel.isStartingCamera ? "Starting…" : "Start Camera")
+                }
+                .font(.headline)
+                .foregroundStyle(.black)
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 16)
+                .background(Color(red: 1.0, green: 0.42, blue: 0.42))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .contentShape(Rectangle())
             }
+            .disabled(viewModel.isStartingCamera)
             .padding(.horizontal, 40)
             .padding(.bottom, 40)
         }

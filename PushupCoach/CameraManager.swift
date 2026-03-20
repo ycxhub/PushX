@@ -3,6 +3,23 @@ import CoreVideo
 import UIKit
 import ImageIO
 
+enum CameraConfigurationError: Error, LocalizedError {
+    case noCameraDevice
+    case cannotAddInput
+    case cannotAddOutput
+
+    var errorDescription: String? {
+        switch self {
+        case .noCameraDevice:
+            return "No camera is available. Use a physical iPhone, or enable a camera in the Simulator (I/O → Camera)."
+        case .cannotAddInput:
+            return "Could not open the camera. Close other apps that might be using it and try again."
+        case .cannotAddOutput:
+            return "Could not start video capture. Try force-quitting and reopening the app."
+        }
+    }
+}
+
 final class CameraManager: NSObject {
     let session = AVCaptureSession()
 
@@ -49,10 +66,10 @@ final class CameraManager: NSObject {
     }
 
     /// Stops (if needed), reconfigures I/O, then starts. All session work runs on `sessionQueue` to avoid deadlocks on restart.
-    func configureAndStart(provider: any PoseProvider, completion: (() -> Void)? = nil) {
+    func configureAndStart(provider: any PoseProvider, completion: ((Error?) -> Void)? = nil) {
         sessionQueue.async { [weak self] in
             guard let self else {
-                DispatchQueue.main.async { completion?() }
+                DispatchQueue.main.async { completion?(nil) }
                 return
             }
 
@@ -80,13 +97,13 @@ final class CameraManager: NSObject {
             guard let camera = Self.preferredFrontCameraDevice(),
                   let deviceInput = try? AVCaptureDeviceInput(device: camera) else {
                 self.session.commitConfiguration()
-                DispatchQueue.main.async { completion?() }
+                DispatchQueue.main.async { completion?(CameraConfigurationError.noCameraDevice) }
                 return
             }
 
             guard self.session.canAddInput(deviceInput) else {
                 self.session.commitConfiguration()
-                DispatchQueue.main.async { completion?() }
+                DispatchQueue.main.async { completion?(CameraConfigurationError.cannotAddInput) }
                 return
             }
             self.session.addInput(deviceInput)
@@ -100,7 +117,7 @@ final class CameraManager: NSObject {
 
             guard self.session.canAddOutput(videoOutput) else {
                 self.session.commitConfiguration()
-                DispatchQueue.main.async { completion?() }
+                DispatchQueue.main.async { completion?(CameraConfigurationError.cannotAddOutput) }
                 return
             }
             self.session.addOutput(videoOutput)
@@ -113,7 +130,7 @@ final class CameraManager: NSObject {
             self.session.startRunning()
 
             DispatchQueue.main.async {
-                completion?()
+                completion?(nil)
             }
         }
     }
