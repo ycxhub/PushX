@@ -1,0 +1,74 @@
+---
+description: Generating a Product Requirements Document (PRD) in Markdown
+globs: tasks/**/*.md
+alwaysApply: false
+---
+
+# Rule: Generating a Product Requirements Document (PRD)
+
+## Goal
+
+Guide an AI assistant to create a detailed Product Requirements Document (PRD) in Markdown format, based on an initial user prompt. The PRD should be clear, actionable, and suitable for a junior developer to understand and implement the feature.
+
+## Process
+
+1. Receive Initial Prompt: The user provides a brief description or request for a new feature or functionality.
+2. Ask Clarifying Questions: Before writing the PRD, ask only the most essential clarifying questions needed to write a clear PRD. Limit questions to 3-5 critical gaps in understanding. Focus on the "what" and "why" of the feature.
+3. Generate PRD: Based on the initial prompt and the user's answers, generate a PRD using the structure below.
+4. Save PRD: Save the generated document as `prd-[feature-name].md` inside the `/tasks` directory.
+
+## Clarifying Questions (Guidelines)
+
+Ask only the most critical questions needed to write a clear PRD. Common areas that may need clarification:
+
+- Problem/Goal: What problem does this feature solve for the user?
+- Core Functionality: What are the key actions a user should be able to perform?
+- Scope/Boundaries: Are there any specific things this feature should not do?
+- Success Criteria: How will we know when this feature is successfully implemented?
+
+### Formatting Requirements
+
+- Number all questions (1, 2, 3, etc.).
+- List options for each question as A, B, C, D, etc.
+- Keep it easy for the user to respond like `1A, 2C, 3B`.
+
+Example format:
+
+```md
+1. What is the primary goal of this feature?
+   A. Improve user onboarding experience
+   B. Increase user retention
+   C. Reduce support burden
+   D. Generate additional revenue
+```
+
+## PRD Structure
+
+The generated PRD must include the following sections:
+
+1. Introduction/Overview: Briefly describe the feature and the problem it solves. State the goal.
+2. Goals: List specific, measurable objectives for this feature.
+3. User Stories: Detail user narratives describing how the feature is used and why it matters.
+4. Functional Requirements: List specific functionalities the feature must have. Number these requirements.
+5. Non-Goals (Out of Scope): Clearly state what the PRD will not include.
+6. Design Considerations (Optional): Link to mockups, describe UI/UX requirements, or mention relevant components/styles.
+7. Technical Considerations (Optional): Mention technical constraints, dependencies, or suggested approaches. When referencing external APIs or libraries, verify against the latest docs (2026). If unsure, do a web search.
+8. Success Metrics: Explain how success will be measured (examples: increase engagement by 10%, reduce support tickets by 20%).
+9. Open Questions: List any remaining questions that need follow-up.
+
+## Target Audience
+
+Assume the primary reader is a junior developer. Requirements must be explicit and unambiguous, with minimal jargon.
+
+## Output
+
+- Format: Markdown (`.md`)
+- Location: `/tasks/`
+- Filename: `prd-[feature-name].md`
+
+## Final Instructions
+
+1. Do NOT start implementing the PRD.
+2. Ask the clarifying questions first.
+3. After receiving the user's answers, improve and generate the PRD.
+
