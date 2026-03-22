@@ -38,3 +38,23 @@ _Complexity:_ combined `git show HEAD --numstat` before this note: 6 files, 632 
 3. `.cursor/rules/task-list.mdc` — 42 lines (42 insertions)
 
 _Complexity:_ `git show e0e4974 --numstat`: 6 files, 230 insertions → **High** (> 200 lines).
+
+## #3 — Rewrite pose geometry for phone-against-wall setup [High]
+
+**Date & time (IST):** 22 Mar 2026, 17:59
+
+**Deployment notes**
+
+- **Bug fixes:** Replace plank detection heuristics (`isTrunkAngleReadyForPushup`, `isPlankLikeForFaceOnCamera`) with `isInPlankFromFrontCamera` and `isStandingPose` for correct phone-vertical-against-wall geometry; reject phantom reps via minimum depth gate; fix false-positive plank when standing
+- **Feature enhancements:** Baseline lock increased 12→30 frames; down/up thresholds raised (0.06→0.10, 0.03→0.05); feedback engine shows context-aware messages for standing vs plank; Phase0TestView setup instructions updated for phone-against-wall portrait
+- **New features:** SPM `Package.swift` for unit testing; `standingPose()` synthetic builder; plank detection + standing rejection unit tests (47 tests, 0 failures); Phase 0 on-device test protocol doc
+- **Docs:** PRD v2.1 — fix all "potrait"/"landscape" typos, consistently describe phone placement as vertical against wall
+- **GitHub:** pushed `main` (`7405c8f`). **Vercel:** native iOS project; nothing to deploy on Vercel
+
+**3 files with largest changes (by lines changed)**
+
+1. `docs/phase0-device-test-protocol.md` — 450 lines (450 insertions)
+2. `Tests/EngineTests/RepCountingEngineTests.swift` — 274 lines (274 insertions)
+3. `Tests/EngineTests/FormScoringEngineTests.swift` — 181 lines (181 insertions)
+
+_Complexity:_ `git show 7405c8f --numstat`: 14 files, 1322 insertions + 71 deletions → **High** (> 200 lines).
