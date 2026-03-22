@@ -79,3 +79,23 @@ _Complexity:_ `git show 7405c8f --numstat`: 14 files, 1322 insertions + 71 delet
 3. `PushupCoach/RepCountingEngine.swift` — 308 lines (249 insertions, 59 deletions)
 
 _Complexity:_ `git show 82643a2 --numstat`: 22 files, 2546 insertions + 320 deletions → **High** (> 200 lines).
+
+## #5 — Hip anchor gate, max duration gate, screen-space-only gates, session summary [High]
+
+**Date & time (IST):** 22 Mar 2026, 15:59
+
+**Deployment notes**
+
+- **Bug fixes:** Hip anchor gate (drift >0.08 rejects kneeling/posture break); maximum rep duration gate (8s cap rejects stuck-in-DOWN artifacts); all gate decisions now screen-space only (world coords removed from descent, return, and depth gates — retained for display only); fix `.up`→`.ascending` enum in LandmarkOverlayView
+- **Feature enhancements:** Session summary prepended to clipboard on Copy Logs (rep/rejection/timeout counts); debug log buffer 50→200 entries; frame counter + timestamp format `[F<frame> t<seconds>]`; near-miss diagnostic in Ready phase (throttled/60 frames); all log formatters include hip drift
+- **New features:** 2 new unit tests — hip drift kneeling rejection, very long rep rejection
+- **Docs:** Rep counting test protocol rewritten as single 5-phase comprehensive smoke test replacing 9 separate tests
+- **GitHub:** pushed `main` (`5d8fc44`). **Vercel:** native iOS project; nothing to deploy on Vercel
+
+**3 files with largest changes (by lines changed)**
+
+1. `docs/rep-counting-test-protocol.md` — 373 lines (87 insertions, 286 deletions)
+2. `PushupCoach/RepCountingEngine.swift` — 153 lines (93 insertions, 60 deletions)
+3. `PushupCoach/Phase0TestView.swift` — 43 lines (39 insertions, 4 deletions)
+
+_Complexity:_ `git show 5d8fc44 --numstat`: 5 files, 250 insertions + 351 deletions → **High** (> 200 lines).
