@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "primary-fixed-dim": "#00d4ec",
+              "surface-container-high": "#20201f",
+              "primary-container": "#00e3fd",
+              "surface-container-low": "#131313",
+              "surface-tint": "#81ecff",
+              "on-background": "#ffffff",
+              "inverse-primary": "#006976",
+              "primary": "#81ecff",
+              "tertiary": "#70aaff",
+              "primary-dim": "#00d4ec",
+              "on-tertiary-container": "#001d3f",
+              "surface-container": "#1a1a1a",
+              "secondary-fixed-dim": "#10d5ff",
+              "on-secondary-container": "#edfaff",
+              "tertiary-fixed": "#80b2ff",
+              "secondary-container": "#00677d",
+              "on-secondary": "#004554",
+              "secondary": "#10d5ff",
+              "inverse-on-surface": "#565555",
+              "surface-variant": "#262626",
+              "on-error": "#490006",
+              "on-secondary-fixed-variant": "#00586b",
+              "error-dim": "#d7383b",
+              "outline-variant": "#484847",
+              "on-primary-fixed": "#003840",
+              "surface-dim": "#0e0e0e",
+              "tertiary-fixed-dim": "#65a4ff",
+              "error": "#ff716c",
+              "on-primary-fixed-variant": "#005762",
+              "secondary-dim": "#00c6ee",
+              "background": "#0e0e0e",
+              "on-tertiary-fixed-variant": "#003971",
+              "on-tertiary-fixed": "#001835",
+              "surface-container-highest": "#262626",
+              "tertiary-container": "#599cf9",
+              "error-container": "#9f0519",
+              "on-surface-variant": "#adaaaa",
+              "surface-container-lowest": "#000000",
+              "on-surface": "#ffffff",
+              "surface": "#0e0e0e",
+              "secondary-fixed": "#78dfff",
+              "on-error-container": "#ffa8a3",
+              "tertiary-dim": "#5c9ffc",
+              "outline": "#767575",
+              "on-secondary-fixed": "#003a47",
+              "on-primary-container": "#004d57",
+              "surface-bright": "#2c2c2c",
+              "primary-fixed": "#00e3fd",
+              "on-tertiary": "#002a55",
+              "inverse-surface": "#fcf9f8",
+              "on-primary": "#005762"
+            },
+            fontFamily: {
+              "headline": ["Inter", "system-ui", "-apple-system", "BlinkMacSystemFont", "sans-serif"],
+              "body": ["Inter", "system-ui", "-apple-system", "sans-serif"],
+              "label": ["Inter", "system-ui", "-apple-system", "sans-serif"]
+            },
+            borderRadius: {"DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem"},
+          },
+        },
+      }
+    </script>
+<style>
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .kinetic-blur {
+        backdrop-filter: blur(24px);
+      }
+      body {
+        background-color: #0e0e0e;
+        color: #ffffff;
+        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+      }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background antialiased selection:bg-primary selection:text-on-primary">
+<!-- Top Navigation -->
+<header class="bg-[#0e0e0e] dark:bg-[#0e0e0e] docked full-width top-0 z-50">
+<div class="flex justify-between items-center w-full px-5 py-4">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-lg bg-surface-container-highest flex items-center justify-center border border-outline-variant/15">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">person</span>
+</div>
+<span class="font-sans font-black tracking-tighter uppercase text-2xl text-[#81ecff] tracking-widest">PUSHX</span>
+</div>
+<button class="text-[#81ecff] hover:text-[#00e3fd] transition-colors duration-200 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+</button>
+</div>
+<div class="bg-gradient-to-b from-[#1a1a1a] to-transparent h-px w-full"></div>
+</header>
+<main class="max-w-5xl mx-auto px-5 pt-8 pb-32">
+<!-- Hero Summary Section -->
+<section class="mb-12">
+<div class="flex flex-col md:flex-row justify-between items-end gap-6">
+<div>
+<span class="text-[0.6875rem] font-bold tracking-[0.05rem] uppercase text-primary mb-2 block">SESSION COMPLETED</span>
+<h1 class="text-4xl md:text-5xl font-black tracking-tighter uppercase leading-none">DIAMOND<br/>KINETICS</h1>
+<p class="text-on-surface-variant text-sm mt-4 font-medium tracking-wide">14 OCT 2023 • HIGH INTENSITY PHASE</p>
+</div>
+<div class="flex flex-col items-end">
+<div class="text-[3.5rem] font-black leading-none text-primary drop-shadow-[0_0_15px_rgba(129,236,255,0.3)]">88</div>
+<span class="text-[0.6875rem] font-bold tracking-[0.05rem] uppercase text-on-surface-variant">FORM SCORE</span>
+</div>
+</div>
+</section>
+<!-- Bento Grid Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
+<!-- Pushup Depth -->
+<div class="md:col-span-2 bg-surface-container-low p-8 rounded-xl relative overflow-hidden group">
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-full -mr-16 -mt-16 blur-3xl group-hover:bg-primary/10 transition-colors"></div>
+<div class="relative z-10">
+<div class="flex justify-between items-start mb-12">
+<div>
+<span class="text-[0.6875rem] font-bold tracking-[0.05rem] uppercase text-on-surface-variant">METRIC.01</span>
+<h3 class="text-xl font-bold tracking-tight uppercase">PUSHUP DEPTH</h3>
+</div>
+<span class="text-primary font-black text-2xl tracking-tighter">94%</span>
+</div>
+<!-- Kinetic Arc Indicator -->
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-gradient-to-r from-primary to-secondary w-[94%] rounded-full"></div>
+</div>
+<div class="mt-4 flex justify-between">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase">CHEST-TO-FLOOR CONSISTENCY</span>
+<span class="text-[10px] font-bold text-primary uppercase">OPTIMAL RANGE</span>
+</div>
+</div>
+</div>
+<!-- Body Alignment -->
+<div class="bg-surface-container p-8 rounded-xl border border-outline-variant/10">
+<span class="text-[0.6875rem] font-bold tracking-[0.05rem] uppercase text-on-surface-variant">METRIC.02</span>
+<h3 class="text-xl font-bold tracking-tight uppercase mb-8">ALIGNMENT</h3>
+<div class="flex flex-col gap-4">
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium text-on-surface-variant">Scapular Lock</span>
+<span class="text-sm font-bold text-primary">STABLE</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium text-on-surface-variant">Lumbar Spine</span>
+<span class="text-sm font-bold text-secondary">NEUTRAL</span>
+</div>
+<div class="flex items-center justify-between">
+<span class="text-sm font-medium text-on-surface-variant">Neck Angle</span>
+<span class="text-sm font-bold text-error">TILTED</span>
+</div>
+</div>
+</div>
+<!-- Rep Consistency -->
+<div class="bg-surface-container p-8 rounded-xl border border-outline-variant/10">
+<span class="text-[0.6875rem] font-bold tracking-[0.05rem] uppercase text-on-surface-variant">METRIC.03</span>
+<h3 class="text-xl font-bold tracking-tight uppercase mb-2">TEMPO</h3>
+<div class="text-3xl font-black text-white mb-6">2:1:1:0</div>
+<p class="text-[10px] leading-relaxed font-bold text-on-surface-variant uppercase tracking-widest">ECCENTRIC • PAUSE • EXPLOSIVE • RESET</p>
+</div>
+<!-- Kinetic Chart Placeholder -->
+<div class="md:col-span-2 bg-surface-container-lowest p-8 rounded-xl relative border border-outline-variant/5 group overflow-hidden">
+<div class="flex justify-between items-center mb-8">
+<h3 class="text-sm font-bold tracking-widest uppercase">POWER OUTPUT PER REP</h3>
+<div class="flex gap-2">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<div class="w-2 h-2 rounded-full bg-surface-container-highest"></div>
+</div>
+</div>
+<!-- Abstract Data Viz -->
+<div class="h-32 flex items-end gap-1">
+<div class="flex-1 bg-surface-container h-[40%]"></div>
+<div class="flex-1 bg-surface-container h-[55%]"></div>
+<div class="flex-1 bg-surface-container h-[70%]"></div>
+<div class="flex-1 bg-surface-container h-[85%]"></div>
+<div class="flex-1 bg-primary/40 h-[95%] border-t-2 border-primary"></div>
+<div class="flex-1 bg-primary/40 h-[90%] border-t-2 border-primary"></div>
+<div class="flex-1 bg-primary/40 h-[92%] border-t-2 border-primary"></div>
+<div class="flex-1 bg-surface-container h-[80%]"></div>
+<div class="flex-1 bg-surface-container h-[65%]"></div>
+<div class="flex-1 bg-surface-container h-[75%]"></div>
+<div class="flex-1 bg-error/20 h-[40%] border-t-2 border-error"></div>
+<div class="flex-1 bg-surface-container h-[30%]"></div>
+</div>
+<div class="mt-4 flex justify-between text-[10px] font-bold uppercase text-on-surface-variant">
+<span>REP 01</span>
+<span>FAILURE POINT (REP 11)</span>
+<span>REP 12</span>
+</div>
+</div>
+</div>
+<!-- Professional Insights -->
+<section class="mb-12">
+<h2 class="text-[0.6875rem] font-bold tracking-[0.05rem] uppercase text-primary mb-6">FORM CALIBRATION TIPS</h2>
+<div class="space-y-4">
+<div class="flex items-start gap-6 p-6 bg-surface-container-low rounded-lg group hover:bg-surface-container transition-colors">
+<span class="text-2xl font-black text-outline-variant group-hover:text-primary transition-colors italic">01</span>
+<div>
+<h4 class="font-bold uppercase tracking-tight text-white mb-1">ELBOW GEOMETRY</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Tuck elbows slightly more to protect rotators. You're flaring at 75°—aim for 45° to maximize triceps activation.</p>
+</div>
+</div>
+<div class="flex items-start gap-6 p-6 bg-surface-container-low rounded-lg group hover:bg-surface-container transition-colors">
+<span class="text-2xl font-black text-outline-variant group-hover:text-primary transition-colors italic">02</span>
+<div>
+<h4 class="font-bold uppercase tracking-tight text-white mb-1">CORE ENGAGEMENT</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Slight anterior pelvic tilt detected during the final 3 reps. Focus on glute squeeze to maintain a rigid lever.</p>
+</div>
+</div>
+<div class="flex items-start gap-6 p-6 bg-surface-container-low rounded-lg group hover:bg-surface-container transition-colors">
+<span class="text-2xl font-black text-outline-variant group-hover:text-primary transition-colors italic">03</span>
+<div>
+<h4 class="font-bold uppercase tracking-tight text-white mb-1">LOCKOUT PRECISION</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed">Explosive phase is stalling 2 inches before full lockout. Push through the floor at the peak of the movement.</p>
+</div>
+</div>
+</div>
+</section>
+<!-- CTA Action -->
+<button class="w-full py-5 bg-gradient-to-r from-primary to-secondary-dim rounded-lg text-on-primary font-black uppercase tracking-[0.2rem] text-sm active:scale-95 transition-transform shadow-[0_8px_32px_rgba(0,229,255,0.2)]">
+            SAVE SESSION TO LOG
+        </button>
+</main>
+<!-- Bottom Navigation -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 bg-[#0e0e0e]/90 backdrop-blur-xl border-t border-[#484847]/15 shadow-[0_-4px_24px_rgba(0,229,255,0.08)] rounded-t-lg">
+<a class="flex flex-col items-center justify-center text-[#484847] px-3 py-1 hover:text-[#81ecff] transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="fitness_center">fitness_center</span>
+<span class="text-[10px] font-bold tracking-[0.05rem] uppercase">TRAIN</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#81ecff] bg-[#81ecff]/10 rounded-xl px-3 py-1 active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="history">history</span>
+<span class="text-[10px] font-bold tracking-[0.05rem] uppercase">HISTORY</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#484847] px-3 py-1 hover:text-[#81ecff] transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="insights">insights</span>
+<span class="text-[10px] font-bold tracking-[0.05rem] uppercase">INSIGHTS</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#484847] px-3 py-1 hover:text-[#81ecff] transition-all active:scale-90 duration-150" href="#">
+<span class="material-symbols-outlined mb-1" data-icon="settings_accessibility">settings_accessibility</span>
+<span class="text-[10px] font-bold tracking-[0.05rem] uppercase">GEAR</span>
+</a>
+</nav>
+</body></html>

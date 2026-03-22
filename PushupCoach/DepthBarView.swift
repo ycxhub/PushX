@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Vertical bar showing real-time push-up depth as a 0–1 fill percentage.
-/// Green at top (up position), accent red at full depth, with a target line.
+/// Electric blue at top (up position), secondary cyan at full depth, with a target line.
 struct DepthBarView: View {
     let depthPercent: CGFloat
     let targetDepthPercent: CGFloat
@@ -16,16 +16,13 @@ struct DepthBarView: View {
     private let barWidth: CGFloat = 14
     private let cornerRadius: CGFloat = 7
 
-    private let topColor = Color(red: 0.3, green: 0.9, blue: 0.5)
-    private let bottomColor = Color(red: 1.0, green: 0.42, blue: 0.42)
-
     var body: some View {
         GeometryReader { geo in
             let h = geo.size.height
 
             ZStack(alignment: .bottom) {
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(Color.white.opacity(0.12))
+                    .fill(Color.nkSurfaceContainerHighest)
                     .frame(width: barWidth)
 
                 if isActive {
@@ -33,7 +30,7 @@ struct DepthBarView: View {
                     RoundedRectangle(cornerRadius: cornerRadius)
                         .fill(
                             LinearGradient(
-                                colors: [topColor, bottomColor],
+                                colors: [Color.nkPrimary, Color.nkPrimaryContainer],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
@@ -44,7 +41,7 @@ struct DepthBarView: View {
 
                 let targetY = h * (1 - targetDepthPercent)
                 Rectangle()
-                    .fill(Color.white.opacity(0.6))
+                    .fill(Color.nkOnSurface.opacity(0.6))
                     .frame(width: barWidth + 6, height: 2)
                     .position(x: geo.size.width / 2, y: targetY)
             }
@@ -52,5 +49,6 @@ struct DepthBarView: View {
         }
         .frame(width: barWidth + 8)
         .opacity(isActive ? 1.0 : 0.3)
+        .accessibilityValue("\(Int(depthPercent * 100)) percent depth")
     }
 }

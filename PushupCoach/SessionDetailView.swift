@@ -4,14 +4,13 @@ struct SessionDetailView: View {
     let session: PushupSession
     @State private var copiedToast = false
 
-    private let coral = Color(red: 1.0, green: 0.42, blue: 0.42)
-
     var body: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                headerSection
+            VStack(spacing: NKSpacing.section) {
+                heroSection
                 if session.hasScores {
-                    scoresSection
+                    kineticMetricsRow
+                    scoresBentoGrid
                 } else {
                     noScoresSection
                 }
@@ -21,136 +20,292 @@ struct SessionDetailView: View {
                 if !session.reps.isEmpty {
                     repsSection
                 }
-                exportButton
+                exportSection
             }
-            .padding()
+            .padding(.horizontal, NKSpacing.xl)
+            .padding(.top, NKSpacing.xxxl)
+            .padding(.bottom, NKSpacing.section)
         }
-        .background(Color.black.ignoresSafeArea())
+        .nkPageBackground()
         .navigationTitle("Session Detail")
         .navigationBarTitleDisplayMode(.inline)
         .overlay(alignment: .bottom) {
             if copiedToast {
-                Text("Copied to clipboard")
-                    .font(.callout.bold())
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(coral)
-                    .clipShape(Capsule())
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .padding(.bottom, 24)
+                toastView
             }
         }
         .animation(.easeInOut(duration: 0.25), value: copiedToast)
     }
 
-    // MARK: - Sections
+    // MARK: - Hero
 
-    private var headerSection: some View {
-        VStack(spacing: 8) {
+    private var heroSection: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.sm) {
+            Text("SESSION DETAIL")
+                .nkPrimaryLabel()
+                .accessibilityAddTraits(.isHeader)
+
             Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
-                .font(.subheadline)
-                .foregroundStyle(.white.opacity(0.6))
+                .font(.nkBodyMD)
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+                .accessibilityLabel("Session date: \(session.startedAt.formatted(date: .abbreviated, time: .shortened))")
 
-            Text("\(session.repCount)")
-                .font(.system(size: 56, weight: .heavy, design: .rounded))
-                .foregroundStyle(coral)
-
-            Text(session.repCount == 1 ? "rep" : "reps")
-                .font(.title3)
-                .foregroundStyle(.white.opacity(0.7))
-
-            HStack(spacing: 16) {
-                metricPill("Duration", formatDuration(session.durationSeconds))
-                metricPill("Provider", session.providerType)
+            HStack(spacing: NKSpacing.md) {
+                metricPill("DURATION", formatDuration(session.durationSeconds))
+                metricPill("PROVIDER", session.providerType.uppercased())
                 if let avg = session.averageRepDuration {
-                    metricPill("Avg/rep", String(format: "%.1fs", avg))
+                    metricPill("AVG/REP", String(format: "%.1fs", avg))
                 }
+            }
+            .padding(.top, NKSpacing.xs)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    // MARK: - Kinetic Asymmetry: Rep Count + Form Score
+
+    private var kineticMetricsRow: some View {
+        HStack(alignment: .top, spacing: NKSpacing.lg) {
+            // Left: massive rep count
+            VStack(alignment: .leading, spacing: NKSpacing.micro) {
+                Text("REPS")
+                    .nkTechnicalLabel()
+
+                Text("\(session.repCount)")
+                    .font(.nkDisplayLG)
+                    .foregroundStyle(Color.nkOnSurface)
+                    .nkAmbientGlow()
+                    .accessibilityLabel("\(session.repCount) reps")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+
+            // Right: composite score
+            if let composite = session.compositeScore {
+                VStack(alignment: .trailing, spacing: NKSpacing.micro) {
+                    Text("FORM SCORE")
+                        .nkTechnicalLabel()
+
+                    Text("\(composite)")
+                        .font(.nkDisplayLG)
+                        .monospacedDigit()
+                        .foregroundStyle(Color.nkScoreColor(composite))
+                        .nkAmbientGlow(color: Color.nkScoreColor(composite))
+                        .accessibilityLabel("Form score \(composite)")
+
+                    Text(Color.nkScoreLabel(composite).uppercased())
+                        .font(.nkLabelXS)
+                        .tracking(1)
+                        .foregroundStyle(Color.nkScoreColor(composite))
+                        .accessibilityLabel(Color.nkScoreLabel(composite))
+                }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+            }
+        }
+        .padding(NKSpacing.xl)
+        .nkCardElevated()
+        .nkAmbientGlow()
+    }
+
+    // MARK: - Scores Bento Grid
+
+    private var scoresBentoGrid: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.md) {
+            Text("SCORE BREAKDOWN")
+                .nkTechnicalLabel()
+                .padding(.leading, NKSpacing.micro)
+
+            LazyVGrid(
+                columns: [GridItem(.flexible(), spacing: NKSpacing.md),
+                          GridItem(.flexible(), spacing: NKSpacing.md)],
+                spacing: NKSpacing.md
+            ) {
+                scoreCard("Depth", session.depthScore)
+                scoreCard("Alignment", session.alignmentScore)
+                scoreCard("Consistency", session.consistencyScore)
+                durationCard
             }
         }
     }
 
-    private var scoresSection: some View {
-        VStack(spacing: 12) {
-            scoreRow("Composite", session.compositeScore)
-            scoreRow("Depth", session.depthScore)
-            scoreRow("Alignment", session.alignmentScore)
-            scoreRow("Consistency", session.consistencyScore)
+    private func scoreCard(_ label: String, _ value: Int?) -> some View {
+        VStack(alignment: .leading, spacing: NKSpacing.sm) {
+            Text(label.uppercased())
+                .font(.nkLabelXS)
+                .tracking(1)
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+
+            if let value {
+                Text("\(value)")
+                    .font(.nkHeadlineMD)
+                    .monospacedDigit()
+                    .foregroundStyle(Color.nkScoreColor(value))
+                    .accessibilityLabel("\(label) score \(value)")
+
+                Text(Color.nkScoreLabel(value))
+                    .font(.nkLabelXS)
+                    .foregroundStyle(Color.nkScoreColor(value).opacity(0.8))
+
+                scoreBar(value: value)
+            } else {
+                Text("—")
+                    .font(.nkHeadlineMD)
+                    .foregroundStyle(Color.nkOnSurfaceVariant.opacity(0.4))
+                    .accessibilityLabel("\(label) score not available")
+            }
         }
-        .padding()
-        .background(Color.white.opacity(0.08))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(NKSpacing.lg)
+        .nkCard()
     }
+
+    private func scoreBar(value: Int) -> some View {
+        GeometryReader { geo in
+            ZStack(alignment: .leading) {
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Color.nkSurfaceContainerHighest)
+
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(
+                        LinearGradient(
+                            colors: [Color.nkScoreColor(value), Color.nkScoreColor(value).opacity(0.6)],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: geo.size.width * CGFloat(value) / 100.0)
+            }
+        }
+        .frame(height: 4)
+        .accessibilityHidden(true)
+    }
+
+    private var durationCard: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.sm) {
+            Text("DURATION")
+                .font(.nkLabelXS)
+                .tracking(1)
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+
+            Text(formatDuration(session.durationSeconds))
+                .font(.nkHeadlineMD)
+                .monospacedDigit()
+                .foregroundStyle(Color.nkOnSurface)
+                .accessibilityLabel("Session duration \(formatDuration(session.durationSeconds))")
+
+            if let avg = session.averageRepDuration {
+                Text(String(format: "%.1fs avg", avg))
+                    .font(.nkLabelXS)
+                    .foregroundStyle(Color.nkOnSurfaceVariant)
+            }
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(NKSpacing.lg)
+        .nkCard()
+    }
+
+    // MARK: - No Scores
 
     private var noScoresSection: some View {
-        Text("Not enough reps for scoring (need 2+)")
-            .font(.callout)
-            .foregroundStyle(.white.opacity(0.5))
-            .padding()
-            .frame(maxWidth: .infinity)
-            .background(Color.white.opacity(0.05))
-            .clipShape(RoundedRectangle(cornerRadius: 14))
+        VStack(spacing: NKSpacing.sm) {
+            Image(systemName: "chart.bar.xaxis.ascending")
+                .font(.nkHeadlineSM)
+                .foregroundStyle(Color.nkOnSurfaceVariant.opacity(0.5))
+
+            Text("Not enough reps for scoring")
+                .font(.nkBodyMD)
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+
+            Text("Complete 2+ reps to unlock form analysis")
+                .font(.nkLabelXS)
+                .foregroundStyle(Color.nkOutline)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(NKSpacing.xxl)
+        .nkCard()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("Not enough reps for scoring. Complete 2 or more reps to unlock form analysis.")
     }
+
+    // MARK: - Improvements
 
     private var improvementsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Suggestions")
-                .font(.headline)
-                .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: NKSpacing.md) {
+            Text("IMPROVEMENT AREAS")
+                .nkTechnicalLabel()
+                .padding(.leading, NKSpacing.micro)
 
             ForEach(Array(session.improvements.enumerated()), id: \.offset) { idx, text in
-                HStack(alignment: .top, spacing: 6) {
-                    Text("\(idx + 1).")
-                        .foregroundStyle(coral)
+                HStack(alignment: .top, spacing: NKSpacing.md) {
+                    Text("\(idx + 1)")
+                        .font(.nkTitleSM.italic())
+                        .foregroundStyle(Color.nkPrimary)
+                        .frame(width: 24, alignment: .trailing)
+                        .accessibilityHidden(true)
+
                     Text(text)
-                        .foregroundStyle(.white.opacity(0.9))
+                        .font(.nkBodyMD)
+                        .foregroundStyle(Color.nkOnSurface.opacity(0.9))
+                        .frame(maxWidth: .infinity, alignment: .leading)
                 }
-                .font(.callout)
+                .padding(NKSpacing.lg)
+                .nkCard()
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Suggestion \(idx + 1): \(text)")
             }
         }
-        .padding()
-        .background(Color.white.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
+    // MARK: - Per-Rep Training Log
+
     private var repsSection: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text("Per-Rep Breakdown")
-                .font(.headline)
-                .foregroundStyle(.white)
+        VStack(alignment: .leading, spacing: NKSpacing.lg) {
+            Text("PER-REP BREAKDOWN")
+                .nkTechnicalLabel()
+                .padding(.leading, NKSpacing.micro)
 
             let sorted = session.reps.sorted { $0.repNumber < $1.repNumber }
             ForEach(sorted, id: \.repNumber) { rep in
-                HStack {
-                    Text("#\(rep.repNumber)")
-                        .font(.callout.monospacedDigit().bold())
-                        .foregroundStyle(coral)
-                        .frame(width: 36, alignment: .leading)
-
-                    Text(String(format: "%.1fs", rep.durationSeconds))
-                        .font(.caption.monospacedDigit())
-                        .foregroundStyle(.white.opacity(0.7))
-                        .frame(width: 44)
-
-                    depthBar(rep)
-
-                    Spacer()
-
-                    if rep.shoulderAsymmetry > 0.04 {
-                        Image(systemName: "exclamationmark.triangle.fill")
-                            .font(.caption2)
-                            .foregroundStyle(.yellow)
-                    }
-                }
-                .padding(.vertical, 2)
+                repRow(rep)
             }
         }
-        .padding()
-        .background(Color.white.opacity(0.05))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
-    private var exportButton: some View {
+    private func repRow(_ rep: PushupRepRecord) -> some View {
+        HStack(spacing: NKSpacing.md) {
+            Text(String(format: "%02d", rep.repNumber))
+                .font(.nkTitleSM.monospacedDigit())
+                .foregroundStyle(Color.nkPrimary)
+                .frame(width: 28, alignment: .leading)
+                .accessibilityLabel("Rep \(rep.repNumber)")
+
+            Text(String(format: "%.1fs", rep.durationSeconds))
+                .font(.nkLabelSM.monospacedDigit())
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+                .frame(width: 40, alignment: .trailing)
+                .accessibilityLabel(String(format: "%.1f seconds", rep.durationSeconds))
+
+            depthBar(rep)
+                .accessibilityHidden(true)
+
+            Spacer(minLength: 0)
+
+            if rep.shoulderAsymmetry > 0.04 {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .font(.nkLabelXS)
+                    .foregroundStyle(Color.nkError)
+                    .accessibilityLabel("Shoulder asymmetry warning")
+            }
+        }
+        .padding(.horizontal, NKSpacing.lg)
+        .padding(.vertical, NKSpacing.md)
+        .background(Color.nkSurfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .accessibilityElement(children: .combine)
+    }
+
+    // MARK: - Export
+
+    private var exportSection: some View {
         Button {
             let json = SessionExporter.toJSON(session: session)
             UIPasteboard.general.string = json
@@ -160,48 +315,49 @@ struct SessionDetailView: View {
             }
         } label: {
             Label("Copy for AI Coach", systemImage: "doc.on.clipboard")
-                .font(.callout.bold())
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 14)
-                .background(Color.white.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .padding(.bottom, 20)
+        .buttonStyle(NKSecondaryButtonStyle())
+        .accessibilityHint("Copies session data as JSON to clipboard")
+    }
+
+    // MARK: - Toast
+
+    private var toastView: some View {
+        HStack(spacing: NKSpacing.sm) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.nkBodyMD)
+            Text("Copied to clipboard")
+                .font(.nkLabelSM)
+                .tracking(0.8)
+        }
+        .foregroundStyle(Color.nkOnPrimaryContainer)
+        .padding(.horizontal, NKSpacing.xl)
+        .padding(.vertical, NKSpacing.md)
+        .background(Color.nkPrimary)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+        .padding(.bottom, NKSpacing.xxl)
+        .accessibilityLabel("Copied to clipboard")
     }
 
     // MARK: - Helpers
 
-    private func scoreRow(_ label: String, _ value: Int?) -> some View {
-        HStack {
-            Text(label)
-                .foregroundStyle(.white.opacity(0.7))
-            Spacer()
-            if let value {
-                Text("\(value)")
-                    .font(.title2.bold().monospacedDigit())
-                    .foregroundStyle(scoreColor(value))
-            } else {
-                Text("—")
-                    .font(.title2.bold())
-                    .foregroundStyle(.white.opacity(0.3))
-            }
-        }
-    }
-
     private func metricPill(_ label: String, _ value: String) -> some View {
-        VStack(spacing: 2) {
+        VStack(spacing: NKSpacing.micro) {
             Text(value)
-                .font(.caption.bold().monospacedDigit())
-                .foregroundStyle(.white)
+                .font(.nkLabelSM.monospacedDigit())
+                .foregroundStyle(Color.nkOnSurface)
             Text(label)
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.5))
+                .font(.nkLabelXS)
+                .tracking(0.8)
+                .foregroundStyle(Color.nkOutline)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(Color.white.opacity(0.08))
+        .padding(.horizontal, NKSpacing.md)
+        .padding(.vertical, NKSpacing.sm)
+        .background(Color.nkSurfaceContainer)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label): \(value)")
     }
 
     private func depthBar(_ rep: PushupRepRecord) -> some View {
@@ -210,16 +366,16 @@ struct SessionDetailView: View {
 
         return GeometryReader { geo in
             RoundedRectangle(cornerRadius: 3)
-                .fill(coral.opacity(0.7))
+                .fill(
+                    LinearGradient(
+                        colors: [.nkPrimary, .nkPrimaryDim],
+                        startPoint: .leading,
+                        endPoint: .trailing
+                    )
+                )
                 .frame(width: max(4, geo.size.width * ratio))
         }
-        .frame(height: 8)
-    }
-
-    private func scoreColor(_ value: Int) -> Color {
-        if value >= 80 { return .green }
-        if value >= 60 { return .yellow }
-        return coral
+        .frame(height: 6)
     }
 
     private func formatDuration(_ seconds: TimeInterval) -> String {

@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PushX | Calibration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed-dim": "#00d4ec",
+                        "surface-container-high": "#20201f",
+                        "primary-container": "#00e3fd",
+                        "surface-container-low": "#131313",
+                        "surface-tint": "#81ecff",
+                        "on-background": "#ffffff",
+                        "inverse-primary": "#006976",
+                        "primary": "#81ecff",
+                        "tertiary": "#70aaff",
+                        "primary-dim": "#00d4ec",
+                        "on-tertiary-container": "#001d3f",
+                        "surface-container": "#1a1a1a",
+                        "secondary-fixed-dim": "#10d5ff",
+                        "on-secondary-container": "#edfaff",
+                        "tertiary-fixed": "#80b2ff",
+                        "secondary-container": "#00677d",
+                        "on-secondary": "#004554",
+                        "secondary": "#10d5ff",
+                        "inverse-on-surface": "#565555",
+                        "surface-variant": "#262626",
+                        "on-error": "#490006",
+                        "on-secondary-fixed-variant": "#00586b",
+                        "error-dim": "#d7383b",
+                        "outline-variant": "#484847",
+                        "on-primary-fixed": "#003840",
+                        "surface-dim": "#0e0e0e",
+                        "tertiary-fixed-dim": "#65a4ff",
+                        "error": "#ff716c",
+                        "on-primary-fixed-variant": "#005762",
+                        "secondary-dim": "#00c6ee",
+                        "background": "#0e0e0e",
+                        "on-tertiary-fixed-variant": "#003971",
+                        "on-tertiary-fixed": "#001835",
+                        "surface-container-highest": "#262626",
+                        "tertiary-container": "#599cf9",
+                        "error-container": "#9f0519",
+                        "on-surface-variant": "#adaaaa",
+                        "surface-container-lowest": "#000000",
+                        "on-surface": "#ffffff",
+                        "surface": "#0e0e0e",
+                        "secondary-fixed": "#78dfff",
+                        "on-error-container": "#ffa8a3",
+                        "tertiary-dim": "#5c9ffc",
+                        "outline": "#767575",
+                        "on-secondary-fixed": "#003a47",
+                        "on-primary-container": "#004d57",
+                        "surface-bright": "#2c2c2c",
+                        "primary-fixed": "#00e3fd",
+                        "on-tertiary": "#002a55",
+                        "inverse-surface": "#fcf9f8",
+                        "on-primary": "#005762"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter", "system-ui", "-apple-system", "sans-serif"],
+                        "body": ["Inter", "system-ui", "-apple-system", "sans-serif"],
+                        "label": ["Inter", "system-ui", "-apple-system", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .kinetic-gradient {
+            background: linear-gradient(135deg, #81ecff 0%, #00c6ee 100%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body selection:bg-primary/30 antialiased overflow-hidden">
+<!-- TopAppBar Fragment (Supressed Nav, Focus on Action) -->
+<header class="bg-[#0e0e0e] flex justify-between items-center w-full px-5 py-4 top-0 z-50">
+<div class="flex items-center gap-3">
+<span class="text-[#81ecff] text-2xl font-black tracking-widest uppercase font-sans">PUSHX</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-on-surface-variant cursor-pointer hover:text-primary transition-colors">close</span>
+</div>
+</header>
+<main class="relative h-[calc(100vh-64px)] overflow-y-auto px-5 pb-10">
+<!-- Instructional Hero Section -->
+<section class="mt-8 mb-10">
+<div class="flex flex-col gap-1">
+<span class="text-primary text-[10px] font-bold tracking-[0.15rem] uppercase font-label">Step 01 / Calibration</span>
+<h1 class="text-3xl font-black tracking-tighter uppercase leading-none italic">POSITION YOUR<br/>STATION</h1>
+</div>
+</section>
+<!-- Visualization Canvas: Phone Positioning -->
+<section class="grid grid-cols-1 md:grid-cols-12 gap-6 items-start">
+<!-- Positioning Illustration Card -->
+<div class="md:col-span-7 aspect-video relative rounded-xl overflow-hidden bg-surface-container-low ring-1 ring-outline-variant/15">
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent z-10"></div>
+<!-- Abstract Representation of Room Placement -->
+<div class="absolute inset-0 flex items-center justify-center">
+<div class="w-4/5 h-1/2 border-b-2 border-primary/40 relative">
+<!-- Floor Level Indicator -->
+<div class="absolute -bottom-1 left-1/4 w-12 h-20 bg-surface-container-highest rounded-t-lg ring-1 ring-primary/20">
+<div class="w-1 h-full bg-primary/30 mx-auto mt-2 blur-[1px]"></div>
+</div>
+<div class="absolute bottom-2 left-1/2 -translate-x-1/2 flex flex-col items-center">
+<div class="w-16 h-1 bg-primary blur-[4px] animate-pulse"></div>
+<span class="text-[8px] text-primary font-bold mt-2 uppercase tracking-widest">Phone Axis</span>
+</div>
+<!-- Depth Marker -->
+<div class="absolute bottom-0 left-[25%] right-[50%] h-px border-t border-dashed border-on-surface-variant/40 flex justify-center">
+<span class="bg-surface px-2 -translate-y-1/2 text-[9px] text-on-surface-variant font-mono italic">2-3 FT DISTANCE</span>
+</div>
+</div>
+</div>
+<img alt="Dark fitness studio floor with professional lighting" class="w-full h-full object-cover opacity-30 grayscale" data-alt="Dark fitness studio floor with professional lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAtU53YrBjhl4dGXztN6PrPDPU_h7u24YJgZn2rLH5bm4jZxt7YdqvSGiccU7rhdyqqfNIpwx9HJ5XrNOVHYWRck0_f7LWbuagKbrytcZxyeKpLi_LAVAhoR7oHH8reiGvoNDMM1j9pNqH80mt6YBhOs3KYcZ_w2PyIxWRFmt9Jy54k4TjtWigqAdZURXE6hUMoSOP_NlSg1KLgOcOx_tDIx2KqMOx_OJLB-3Kdu_M0qGc5B1PcJyD3UaBIBFCkNjaniNycedwNJv2h"/>
+<div class="absolute bottom-4 left-4 z-20 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary text-sm" style="font-variation-settings: 'FILL' 1;">info</span>
+<span class="text-[11px] font-bold text-on-surface tracking-wide uppercase">AI SENSOR ALIGNMENT ACTIVE</span>
+</div>
+</div>
+<!-- Instruction Controls -->
+<div class="md:col-span-5 flex flex-col gap-8">
+<!-- Quick Settings Icons -->
+<div class="grid grid-cols-2 gap-4">
+<div class="bg-surface-container p-5 rounded-xl flex flex-col items-center justify-center gap-3 ring-1 ring-outline-variant/10">
+<span class="material-symbols-outlined text-primary text-3xl">screen_rotation</span>
+<span class="text-[10px] font-black tracking-widest uppercase text-on-surface">LANDSCAPE MODE</span>
+</div>
+<div class="bg-surface-container p-5 rounded-xl flex flex-col items-center justify-center gap-3 ring-1 ring-outline-variant/10">
+<span class="material-symbols-outlined text-primary text-3xl">light_mode</span>
+<span class="text-[10px] font-black tracking-widest uppercase text-on-surface">BRIGHT LIGHTING</span>
+</div>
+</div>
+<!-- Technical Checklist -->
+<div class="flex flex-col gap-4">
+<span class="text-[10px] font-bold text-on-surface-variant uppercase tracking-widest border-l-2 border-primary pl-3">Calibration Checklist</span>
+<div class="space-y-3">
+<div class="flex items-center justify-between bg-surface-container-low p-4 rounded-lg ring-1 ring-outline-variant/5">
+<div class="flex items-center gap-4">
+<div class="w-5 h-5 rounded bg-primary/10 border border-primary/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xs" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+<span class="text-sm font-medium tracking-tight text-on-surface">Full body visible</span>
+</div>
+<span class="text-[10px] font-mono text-on-surface-variant">AUTO_DETECTED</span>
+</div>
+<div class="flex items-center justify-between bg-surface-container-low p-4 rounded-lg ring-1 ring-outline-variant/5">
+<div class="flex items-center gap-4">
+<div class="w-5 h-5 rounded bg-primary/10 border border-primary/30 flex items-center justify-center">
+<span class="material-symbols-outlined text-primary text-xs" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+<span class="text-sm font-medium tracking-tight text-on-surface">No obstructions</span>
+</div>
+<span class="text-[10px] font-mono text-on-surface-variant">READY</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Dynamic Tip Section -->
+<section class="mt-12 bg-surface-container-highest/30 p-6 rounded-2xl border border-primary/10">
+<div class="flex gap-4 items-start">
+<div class="p-2 bg-primary/10 rounded-lg">
+<span class="material-symbols-outlined text-primary">psychology</span>
+</div>
+<div>
+<h4 class="text-xs font-black uppercase tracking-widest text-primary mb-1">PRO TIP: ELBOW TRACKING</h4>
+<p class="text-sm text-on-surface-variant leading-relaxed font-medium">
+                        For maximum precision in "Eccentric Control" metrics, ensure your background is high-contrast. Avoid wearing dark clothes against dark floors.
+                    </p>
+</div>
+</div>
+</section>
+<!-- Sticky Action Anchor -->
+<div class="fixed bottom-0 left-0 w-full p-6 bg-gradient-to-t from-surface via-surface/95 to-transparent">
+<button class="w-full kinetic-gradient py-5 rounded-lg flex items-center justify-center gap-3 active:scale-95 transition-transform">
+<span class="text-on-primary font-black uppercase tracking-widest text-sm">PROCEED TO CALIBRATION</span>
+<span class="material-symbols-outlined text-on-primary">arrow_forward</span>
+</button>
+</div>
+</main>
+<!-- Invisible spacers for scroll -->
+<div class="h-24"></div>
+</body></html>

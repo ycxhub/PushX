@@ -77,7 +77,7 @@ final class Phase0ViewModel: ObservableObject {
     private var lastRepCount: Int = 0
     private var startupAttemptID: UUID?
     private var startupWatchdogTask: Task<Void, Never>?
-    private var sessionStartTime: Date?
+    private(set) var sessionStartTime: Date?
 
     var captureSession: AVCaptureSession { cameraManager.session }
     var isStartingCamera: Bool {
@@ -505,7 +505,7 @@ final class Phase0ViewModel: ObservableObject {
         addDebug("Selected provider: \(provider.providerType.rawValue)")
         updateCameraStartupPhase(.configuringSession, log: "Configuring capture session")
 
-        // Wire callbacks before capture starts so the first frames aren’t dropped.
+        // Wire callbacks before capture starts so the first frames aren't dropped.
         cameraManager.onPoseResult = { [weak self] result in
             Task { @MainActor [weak self] in
                 self?.handlePoseSample(result)
@@ -630,10 +630,11 @@ struct Phase0TestView: View {
     @State private var showFaceOrientationTest = false
     @State private var repCountScale: CGFloat = 1.0
     @State private var sessionSaved = false
+    @State private var showDebugPanel = false
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.nkSurface.ignoresSafeArea()
 
             if viewModel.isRunning {
                 cameraView
@@ -646,11 +647,6 @@ struct Phase0TestView: View {
         .fullScreenCover(isPresented: $showFaceOrientationTest) {
             FaceOrientationTestView()
         }
-        .overlay(alignment: .top) {
-            startupBanner
-                .padding(.top, 8)
-                .padding(.horizontal, 12)
-        }
         .preferredColorScheme(.dark)
         .statusBarHidden(viewModel.isRunning)
         .workoutLandscapeWhenActive(viewModel.isRunning)
@@ -659,11 +655,21 @@ struct Phase0TestView: View {
             SessionStore.save(session: session, context: modelContext)
             sessionSaved = true
         }
-        .alert("Can’t start camera", isPresented: Binding(
+        .alert("Camera Unavailable", isPresented: Binding(
             get: { viewModel.cameraErrorMessage != nil },
             set: { if !$0 { viewModel.cameraErrorMessage = nil } }
         )) {
-            Button("OK", role: .cancel) { viewModel.cameraErrorMessage = nil }
+            Button("Open Settings") {
+                if let url = URL(string: UIApplication.openSettingsURLString) {
+                    UIApplication.shared.open(url)
+                }
+                viewModel.cameraErrorMessage = nil
+            }
+            Button("Try Again") {
+                viewModel.cameraErrorMessage = nil
+                viewModel.startCamera()
+            }
+            Button("Cancel", role: .cancel) { viewModel.cameraErrorMessage = nil }
         } message: {
             Text(viewModel.cameraErrorMessage ?? "")
         }
@@ -673,71 +679,169 @@ struct Phase0TestView: View {
 
     private var startView: some View {
         ScrollView {
-            VStack(spacing: 24) {
-                Spacer(minLength: 60)
-
-                Image(systemName: "figure.strengthtraining.traditional")
-                    .font(.system(size: 64))
-                    .foregroundStyle(Color(red: 1.0, green: 0.42, blue: 0.42))
-
-                Text("PushupCoach — Phase 0 Test")
-                    .font(.title.bold())
-                    .foregroundStyle(.white)
-
-                Text("This test validates camera capture, pose detection, rep counting, and form scoring.")
-                    .font(.body)
-                    .foregroundStyle(.gray)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 40)
-
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Lean phone against a wall, screen facing you", systemImage: "iphone")
-                    Label("Portrait orientation (tall, not sideways)", systemImage: "arrow.up")
-                    Label("Step back 2–3 feet and get into pushup position", systemImage: "figure.strengthtraining.traditional")
-                    Label("Good lighting, upper body in view", systemImage: "light.max")
-                }
-                .font(.callout)
-                .foregroundStyle(.white.opacity(0.85))
-
-                Button {
-                    showFaceOrientationTest = true
-                } label: {
-                    Text("Face orientation test (MediaPipe)")
-                        .font(.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 16)
-                        .background(Color.white.opacity(0.18))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
-                .padding(.horizontal, 40)
-
-                Button {
-                    viewModel.startCamera()
-                } label: {
-                    HStack(spacing: 10) {
-                        if viewModel.isStartingCamera {
-                            ProgressView()
-                                .tint(.black)
-                        }
-                        Text(viewModel.isStartingCamera ? viewModel.startupStatusText : "Start Camera")
+            VStack(spacing: 0) {
+                HStack {
+                    Text("PushX")
+                        .font(.system(size: 24, weight: .black))
+                        .tracking(3)
+                        .foregroundStyle(Color.nkPrimary)
+                    Spacer()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(Color.nkOnSurfaceVariant)
                     }
-                    .font(.headline)
-                    .foregroundStyle(.black)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-                    .background(Color(red: 1.0, green: 0.42, blue: 0.42))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
-                    .contentShape(Rectangle())
+                    .accessibilityLabel("Close")
                 }
-                .disabled(viewModel.isStartingCamera)
-                .padding(.horizontal, 40)
+                .padding(.horizontal, NKSpacing.xl)
+                .padding(.top, NKSpacing.lg)
 
-                startScreenDebugPanel
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 40)
+                VStack(alignment: .leading, spacing: NKSpacing.sm) {
+                    Text("STEP 01 / CALIBRATION")
+                        .nkPrimaryLabel()
+                    Text("Position Your\nStation")
+                        .font(.nkHeadlineMD)
+                        .tracking(-0.5)
+                        .foregroundStyle(Color.nkOnSurface)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, NKSpacing.xl)
+                .padding(.top, NKSpacing.section)
+
+                VStack(spacing: NKSpacing.md) {
+                    checklistItem(icon: "iphone", text: "Phone against wall, screen facing you", checked: true)
+                    checklistItem(icon: "arrow.up", text: "Portrait orientation", checked: true)
+                    checklistItem(icon: "figure.strengthtraining.traditional", text: "2–3 feet back in pushup position", checked: false)
+                    checklistItem(icon: "light.max", text: "Bright lighting, upper body visible", checked: false)
+                }
+                .padding(.horizontal, NKSpacing.xl)
+                .padding(.top, NKSpacing.xxxl)
+
+                HStack(spacing: NKSpacing.lg) {
+                    settingIcon(icon: "camera.fill", label: "FRONT CAMERA")
+                    settingIcon(icon: "light.max", label: "BRIGHT LIGHTING")
+                }
+                .padding(.horizontal, NKSpacing.xl)
+                .padding(.top, NKSpacing.xxl)
+
+                HStack(alignment: .top, spacing: NKSpacing.lg) {
+                    Image(systemName: "brain.head.profile")
+                        .foregroundStyle(Color.nkPrimary)
+                        .frame(width: 32, height: 32)
+                        .background(Color.nkPrimary.opacity(0.1))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    VStack(alignment: .leading, spacing: NKSpacing.micro) {
+                        Text("PRO TIP: CONTRAST")
+                            .nkPrimaryLabel()
+                        Text("Avoid dark clothes against dark floors. High contrast between your body and background improves tracking accuracy.")
+                            .font(.nkBodyMD)
+                            .foregroundStyle(Color.nkOnSurfaceVariant)
+                            .lineSpacing(3)
+                    }
+                }
+                .padding(NKSpacing.xl)
+                .background(Color.nkSurfaceContainerHighest.opacity(0.3))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(Color.nkPrimary.opacity(0.1), lineWidth: 1)
+                )
+                .padding(.horizontal, NKSpacing.xl)
+                .padding(.top, NKSpacing.xxl)
+
+                VStack(spacing: NKSpacing.md) {
+                    Button {
+                        viewModel.startCamera()
+                    } label: {
+                        HStack(spacing: NKSpacing.md) {
+                            if viewModel.isStartingCamera {
+                                ProgressView()
+                                    .tint(Color.nkOnPrimaryContainer)
+                            }
+                            Text(viewModel.isStartingCamera ? viewModel.startupStatusText : "Begin Calibration")
+                        }
+                    }
+                    .buttonStyle(NKPrimaryButtonStyle())
+                    .disabled(viewModel.isStartingCamera)
+                    .accessibilityHint("Starts the camera for pushup tracking")
+
+                    Button {
+                        showFaceOrientationTest = true
+                    } label: {
+                        Text("Face Orientation Test")
+                    }
+                    .buttonStyle(NKSecondaryButtonStyle())
+
+                    Button {
+                        showDebugPanel.toggle()
+                    } label: {
+                        Text(showDebugPanel ? "Hide Debug" : "Show Debug")
+                            .font(.nkLabelXS)
+                            .foregroundStyle(Color.nkOutline)
+                    }
+                    .padding(.top, NKSpacing.sm)
+                }
+                .padding(.horizontal, NKSpacing.xl)
+                .padding(.top, NKSpacing.section)
+
+                if showDebugPanel {
+                    debugPanel
+                        .padding(.horizontal, NKSpacing.xl)
+                        .padding(.top, NKSpacing.lg)
+                }
+
+                Spacer(minLength: NKSpacing.section)
             }
         }
+        .nkPageBackground()
+    }
+
+    private func checklistItem(icon: String, text: String, checked: Bool) -> some View {
+        HStack(spacing: NKSpacing.lg) {
+            ZStack {
+                RoundedRectangle(cornerRadius: 4)
+                    .fill(checked ? Color.nkPrimary.opacity(0.1) : Color.nkSurfaceContainerHighest)
+                    .frame(width: 20, height: 20)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 4)
+                            .stroke(checked ? Color.nkPrimary.opacity(0.3) : Color.nkOutlineVariant.opacity(0.3), lineWidth: 1)
+                    )
+                if checked {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.nkPrimary)
+                }
+            }
+            Text(text)
+                .font(.nkBodyMD)
+                .foregroundStyle(Color.nkOnSurface)
+            Spacer()
+        }
+        .padding(NKSpacing.lg)
+        .background(Color.nkSurfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 8)
+                .stroke(Color.nkOutlineVariant.opacity(0.05), lineWidth: 1)
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(text): \(checked ? "ready" : "pending")")
+    }
+
+    private func settingIcon(icon: String, label: String) -> some View {
+        VStack(spacing: NKSpacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 24))
+                .foregroundStyle(Color.nkPrimary)
+            Text(label)
+                .font(.nkLabelXS)
+                .tracking(1.5)
+                .textCase(.uppercase)
+                .foregroundStyle(Color.nkOnSurface)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(NKSpacing.xl)
+        .nkCardElevated()
     }
 
     // MARK: - Camera + Tracking
@@ -750,17 +854,20 @@ struct Phase0TestView: View {
                 })
 
                 if viewModel.cameraStartupPhase == .configuringSession {
-                    VStack(spacing: 10) {
+                    VStack(spacing: NKSpacing.md) {
                         ProgressView()
-                            .tint(.white)
+                            .tint(Color.nkPrimary)
                         Text(viewModel.startupStatusText)
-                            .font(.headline)
-                            .foregroundStyle(.white)
+                            .font(.nkLabelSM)
+                            .textCase(.uppercase)
+                            .tracking(1)
+                            .foregroundStyle(Color.nkOnSurface)
                     }
-                    .padding(.horizontal, 24)
-                    .padding(.vertical, 18)
-                    .background(.black.opacity(0.6))
-                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .padding(.horizontal, NKSpacing.xxl)
+                    .padding(.vertical, NKSpacing.xl)
+                    .background(Color.nkSurface.opacity(0.85))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .nkAmbientGlow()
                 }
 
                 LandmarkOverlayView(
@@ -770,19 +877,12 @@ struct Phase0TestView: View {
                 )
 
                 VStack {
-                    Spacer()
-                    cameraDebugOverlay
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, 84)
-                }
-
-                VStack {
                     HStack(alignment: .top) {
                         ShoulderLevelHUDView(
                             imbalanceMetric: viewModel.shoulderImbalanceMetric,
                             isVisible: viewModel.trackingState == .locked && viewModel.showSkeleton
                         )
-                        .padding(.leading, 12)
+                        .padding(.leading, NKSpacing.md)
                         .padding(.top, 100)
                         Spacer()
                     }
@@ -798,13 +898,13 @@ struct Phase0TestView: View {
                         isActive: viewModel.trackingState == .locked && viewModel.currentPhase != .idle
                     )
                     .frame(height: geo.size.height * 0.4)
-                    .padding(.trailing, 12)
+                    .padding(.trailing, NKSpacing.md)
                 }
 
                 VStack(spacing: 0) {
-                    topBar
-                        .padding(.horizontal, 12)
-                        .padding(.top, 8)
+                    cameraTopBar
+                        .padding(.horizontal, NKSpacing.md)
+                        .padding(.top, NKSpacing.sm)
 
                     Spacer(minLength: 0)
 
@@ -814,9 +914,9 @@ struct Phase0TestView: View {
 
                     Spacer(minLength: 0)
 
-                    bottomBar
-                        .padding(.horizontal, 12)
-                        .padding(.bottom, 12)
+                    cameraBottomBar
+                        .padding(.horizontal, NKSpacing.md)
+                        .padding(.bottom, NKSpacing.md)
                 }
             }
             .onAppear { viewModel.updateOverlayContainerSize(geo.size) }
@@ -830,134 +930,38 @@ struct Phase0TestView: View {
             let text = primaryCoachingText
             let sub = viewModel.secondaryCoachingText
             if !text.isEmpty || !sub.isEmpty {
-                VStack(spacing: 4) {
+                VStack(spacing: NKSpacing.micro) {
                     if !text.isEmpty {
-                        Text(text)
-                            .font(.headline)
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(.white)
+                        HStack(spacing: NKSpacing.sm) {
+                            Image(systemName: "bolt.fill")
+                                .font(.system(size: 12, weight: .bold))
+                                .foregroundStyle(Color.nkPrimary)
+                            Text(text)
+                                .font(.system(size: 14, weight: .black))
+                                .textCase(.uppercase)
+                                .tracking(1)
+                                .foregroundStyle(Color.nkOnSurface)
+                        }
                     }
                     if !sub.isEmpty, sub != text {
                         Text(sub)
-                            .font(.subheadline)
-                            .multilineTextAlignment(.center)
-                            .foregroundStyle(.white.opacity(0.88))
+                            .font(.nkLabelSM)
+                            .foregroundStyle(Color.nkOnSurfaceVariant)
                     }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
+                .padding(.horizontal, NKSpacing.xl)
+                .padding(.vertical, NKSpacing.md)
                 .frame(maxWidth: .infinity)
-                .background(.black.opacity(0.55))
-            }
-        }
-    }
-
-    private var startupBanner: some View {
-        HStack(spacing: 10) {
-            Circle()
-                .fill(startupBannerColor)
-                .frame(width: 10, height: 10)
-            Text(viewModel.startupBannerText)
-                .font(.headline.weight(.semibold))
-                .foregroundStyle(.white)
-            Spacer()
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .frame(maxWidth: .infinity)
-        .background(.black.opacity(0.8))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(startupBannerColor.opacity(0.9), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-    }
-
-    private var startupBannerColor: Color {
-        switch viewModel.cameraStartupPhase {
-        case .idle:
-            return .gray
-        case .requestingPermission:
-            return .yellow
-        case .configuringSession:
-            return Color(red: 1.0, green: 0.42, blue: 0.42)
-        case .running:
-            return .green
-        case .failed:
-            return .red
-        }
-    }
-
-    private var startScreenDebugPanel: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text("Debug Log")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                Spacer()
-                Button("Copy Logs") {
-                    viewModel.copyDebugLogsToPasteboard()
+                .background(Color.nkPrimary.opacity(0.1))
+                .overlay(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.nkPrimary)
+                        .frame(width: 4)
                 }
-                .buttonStyle(Phase0ButtonStyle())
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Coaching: \(text). \(sub)")
             }
-
-            Text("Tap Copy Logs, then paste the full output into chat.")
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.7))
-
-            ScrollView {
-                Text(viewModel.debugLogText)
-                    .font(.system(.caption, design: .monospaced))
-                    .foregroundStyle(.green.opacity(0.92))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-            }
-            .frame(minHeight: 180, maxHeight: 240)
-            .padding(10)
-            .background(.black.opacity(0.55))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
         }
-        .padding(14)
-        .background(Color.white.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 16))
-    }
-
-    private var cameraDebugOverlay: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            HStack {
-                Text("Runtime Debug")
-                    .font(.headline)
-                    .foregroundStyle(.white)
-                Spacer()
-                Button("Copy Logs") {
-                    viewModel.copyDebugLogsToPasteboard()
-                }
-                .buttonStyle(Phase0ButtonStyle())
-            }
-
-            Text("Phase: \(viewModel.startupBannerText) | Frames: \(viewModel.processedFrameCount) | FPS: \(String(format: "%.1f", viewModel.fps))")
-                .font(.system(.caption, design: .monospaced))
-                .foregroundStyle(.white.opacity(0.88))
-
-            ScrollView {
-                Text(viewModel.debugLogText)
-                    .font(.system(.caption2, design: .monospaced))
-                    .foregroundStyle(.green.opacity(0.92))
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .textSelection(.enabled)
-            }
-            .frame(maxHeight: 120)
-            .padding(8)
-            .background(.black.opacity(0.58))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-        }
-        .padding(12)
-        .background(.black.opacity(0.74))
-        .overlay(
-            RoundedRectangle(cornerRadius: 14)
-                .stroke(Color.white.opacity(0.12), lineWidth: 1)
-        )
-        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
     private var primaryCoachingText: String {
@@ -968,56 +972,64 @@ struct Phase0TestView: View {
             return viewModel.feedbackMessage
         }
         if viewModel.trackingState == .locked, viewModel.currentPhase == .idle, !viewModel.isCalibratedForPushup {
-            return "Face in frame — get arms visible and move into plank."
+            return "Get arms visible — move into plank"
         }
         return ""
     }
 
-    private var topBar: some View {
+    private var cameraTopBar: some View {
         HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
-                    statusDot(viewModel.bodyDetected)
-                    Text("Body")
-                }
-                HStack(spacing: 6) {
-                    statusDot(viewModel.landmarksVisible)
-                    Text("Landmarks")
-                }
-                HStack(spacing: 6) {
-                    statusDot(viewModel.distanceOK)
-                    Text("Distance")
-                }
+            VStack(alignment: .leading, spacing: NKSpacing.xs) {
+                trackingIndicator("BODY", ok: viewModel.bodyDetected)
+                trackingIndicator("LANDMARKS", ok: viewModel.landmarksVisible)
+                trackingIndicator("DISTANCE", ok: viewModel.distanceOK)
             }
-            .font(.caption.bold())
-            .foregroundStyle(.white)
+            .padding(NKSpacing.md)
+            .background(Color.nkSurface.opacity(0.7))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
 
             Spacer()
 
-            VStack(alignment: .trailing, spacing: 4) {
-                Text("\(String(format: "%.1f", viewModel.fps)) FPS")
-                    .font(.caption.monospacedDigit())
-                Text(viewModel.providerType.rawValue)
-                    .font(.caption2)
-                Text("Track: \(String(describing: viewModel.trackingState))")
-                    .font(.caption2)
-                Text("Phase: \(viewModel.currentPhase.rawValue)")
-                    .font(.caption2)
-                Text("Depth: \(String(format: "%.0f%%", viewModel.depthPercent * 100))")
-                    .font(.caption2)
+            VStack(alignment: .trailing, spacing: NKSpacing.micro) {
+                Text("ELAPSED")
+                    .font(.system(size: 8, weight: .bold))
+                    .tracking(1)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Color.nkOutline)
+                if let start = viewModel.sessionStartTime {
+                    Text(start, style: .timer)
+                        .font(.system(size: 13, weight: .bold, design: .monospaced))
+                        .foregroundStyle(Color.nkPrimary)
+                }
             }
-            .foregroundStyle(.white.opacity(0.85))
+            .padding(.horizontal, NKSpacing.md)
+            .padding(.vertical, NKSpacing.sm)
+            .background(Color.nkSurfaceContainerHighest.opacity(0.7))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
         }
-        .padding(10)
-        .background(.ultraThinMaterial.opacity(0.65))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+
+    private func trackingIndicator(_ label: String, ok: Bool) -> some View {
+        HStack(spacing: NKSpacing.xs) {
+            Circle()
+                .fill(ok ? Color.nkPrimary : Color.nkError)
+                .frame(width: 6, height: 6)
+                .shadow(color: ok ? Color.nkPrimary.opacity(0.6) : Color.nkError.opacity(0.6), radius: 4)
+            Text(label)
+                .font(.system(size: 9, weight: .bold))
+                .tracking(1)
+                .textCase(.uppercase)
+                .foregroundStyle(Color.nkOnSurface)
+        }
     }
 
     private var repCounter: some View {
-        VStack(spacing: 6) {
+        VStack(spacing: NKSpacing.sm) {
             Text("\(viewModel.repCount)")
-                .font(.system(size: 88, weight: .heavy, design: .rounded))
-                .foregroundStyle(Color(red: 1.0, green: 0.42, blue: 0.42))
+                .font(.system(size: 96, weight: .heavy))
+                .monospacedDigit()
+                .foregroundStyle(Color.nkOnSurface)
+                .shadow(color: Color.nkPrimary.opacity(0.3), radius: 24)
                 .scaleEffect(repCountScale)
                 .onChange(of: viewModel.repAnimToken) { _, _ in
                     withAnimation(.spring(response: 0.2, dampingFraction: 0.5)) {
@@ -1029,58 +1041,71 @@ struct Phase0TestView: View {
                         }
                     }
                 }
+                .accessibilityLabel("\(viewModel.repCount) reps")
 
-            Text(viewModel.workoutStateSubtitle)
-                .font(.subheadline.weight(.semibold))
-                .foregroundStyle(.white.opacity(0.9))
+            Text(viewModel.workoutStateSubtitle.uppercased())
+                .font(.nkLabelSM)
+                .tracking(1.5)
+                .foregroundStyle(Color.nkOnSurfaceVariant)
 
             if viewModel.trackingState == .locked {
                 if viewModel.currentPhase == .down {
-                    Text("Go lower")
-                        .font(.title3.bold())
-                        .foregroundStyle(.white)
+                    Text("GO LOWER")
+                        .font(.system(size: 16, weight: .black))
+                        .tracking(2)
+                        .foregroundStyle(Color.nkPrimary)
                 } else if viewModel.currentPhase == .paused {
-                    Text("Get back in frame!")
-                        .font(.title3.bold())
-                        .foregroundStyle(.orange)
+                    Text("GET BACK IN FRAME")
+                        .font(.system(size: 16, weight: .black))
+                        .tracking(2)
+                        .foregroundStyle(Color.nkError)
                 }
             }
         }
     }
 
-    private var bottomBar: some View {
-        VStack(spacing: 10) {
-            if !viewModel.debugMessages.isEmpty {
-                ScrollView {
-                    VStack(alignment: .leading, spacing: 2) {
-                        ForEach(Array(viewModel.debugMessages.suffix(5).enumerated()), id: \.offset) { _, msg in
-                            Text(msg)
-                                .font(.system(.caption2, design: .monospaced))
-                                .foregroundStyle(.green.opacity(0.85))
-                        }
+    private var cameraBottomBar: some View {
+        VStack(spacing: NKSpacing.md) {
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    Rectangle()
+                        .fill(Color.nkSurfaceContainer)
+                    Rectangle()
+                        .fill(Color.nkPrimary)
+                        .frame(width: geo.size.width * min(1, CGFloat(viewModel.repCount) / 20.0))
+                }
+            }
+            .frame(height: 3)
+            .clipShape(RoundedRectangle(cornerRadius: 2))
+
+            HStack(spacing: NKSpacing.lg) {
+                Button {
+                    viewModel.stopCamera()
+                } label: {
+                    HStack(spacing: NKSpacing.sm) {
+                        Image(systemName: "stop.circle.fill")
+                            .font(.system(size: 16))
+                        Text("End Set")
                     }
                 }
-                .frame(maxHeight: 56)
-                .padding(6)
-                .background(.black.opacity(0.55))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
+                .buttonStyle(NKPrimaryButtonStyle())
+                .accessibilityHint("Ends the current set and shows your scores")
 
-            HStack(spacing: 12) {
-                Button("Switch Provider") {
+                Button {
                     viewModel.switchProvider()
+                } label: {
+                    Image(systemName: "arrow.triangle.2.circlepath")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Color.nkOnSurface)
+                        .frame(width: 52, height: 52)
+                        .background(Color.nkSurfaceContainerHigh)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.nkOutlineVariant.opacity(0.15), lineWidth: 1)
+                        )
                 }
-                .buttonStyle(Phase0ButtonStyle())
-
-                Button("Reset") {
-                    viewModel.resetSession()
-                }
-                .buttonStyle(Phase0ButtonStyle())
-
-                Button("Stop") {
-                    viewModel.stopCamera()
-                }
-                .buttonStyle(Phase0ButtonStyle(isPrimary: true))
+                .accessibilityLabel("Switch pose provider")
             }
         }
     }
@@ -1089,95 +1114,209 @@ struct Phase0TestView: View {
 
     private var summaryView: some View {
         ScrollView {
-            VStack(spacing: 20) {
-                Text("Workout Complete")
-                    .font(.title.bold())
-                    .foregroundStyle(.white)
+            VStack(spacing: 0) {
+                VStack(alignment: .leading, spacing: NKSpacing.sm) {
+                    Text("SESSION COMPLETED")
+                        .nkPrimaryLabel()
+                    Text("Pushup\nPerformance")
+                        .font(.nkHeadlineMD)
+                        .tracking(-0.5)
+                        .foregroundStyle(Color.nkOnSurface)
+                    if let session = viewModel.completedSession {
+                        Text(session.startedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
+                            .font(.nkBodyMD)
+                            .foregroundStyle(Color.nkOnSurfaceVariant)
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, NKSpacing.xl)
+                .padding(.top, NKSpacing.xxl)
 
-                Text("\(viewModel.repCount) reps")
-                    .font(.system(size: 48, weight: .heavy, design: .rounded))
-                    .foregroundStyle(Color(red: 1.0, green: 0.42, blue: 0.42))
+                HStack(alignment: .bottom) {
+                    VStack(alignment: .leading, spacing: NKSpacing.micro) {
+                        Text("REPS")
+                            .nkTechnicalLabel()
+                        Text("\(viewModel.repCount)")
+                            .font(.nkDisplayLG)
+                            .monospacedDigit()
+                            .foregroundStyle(Color.nkOnSurface)
+                    }
+                    Spacer()
+                    if let scores = viewModel.formScores {
+                        VStack(alignment: .trailing, spacing: NKSpacing.micro) {
+                            Text("\(scores.composite)")
+                                .font(.nkDisplayLG)
+                                .monospacedDigit()
+                                .foregroundStyle(Color.nkPrimary)
+                                .shadow(color: Color.nkPrimary.opacity(0.3), radius: 16)
+                            Text("FORM SCORE")
+                                .nkTechnicalLabel()
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("Form score: \(scores.composite) out of 100, \(Color.nkScoreLabel(scores.composite))")
+                    }
+                }
+                .padding(.horizontal, NKSpacing.xl)
+                .padding(.top, NKSpacing.xxxl)
 
                 if let scores = viewModel.formScores {
-                    VStack(spacing: 12) {
-                        scoreRow("Composite", scores.composite)
-                        scoreRow("Depth", scores.depth)
-                        scoreRow("Alignment", scores.alignment)
-                        scoreRow("Consistency", scores.consistency)
-                    }
-                    .padding()
-                    .background(Color.white.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                    summaryScoresGrid(scores)
+                        .padding(.horizontal, NKSpacing.xl)
+                        .padding(.top, NKSpacing.xxl)
 
                     if !scores.improvements.isEmpty {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Suggestions")
-                                .font(.headline)
-                                .foregroundStyle(.white)
-
-                            ForEach(Array(scores.improvements.enumerated()), id: \.offset) { idx, text in
-                                HStack(alignment: .top) {
-                                    Text("\(idx + 1).")
-                                        .foregroundStyle(Color(red: 1.0, green: 0.42, blue: 0.42))
-                                    Text(text)
-                                        .foregroundStyle(.white.opacity(0.9))
-                                }
-                                .font(.callout)
-                            }
-                        }
-                        .padding()
-                        .background(Color.white.opacity(0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        summaryImprovements(scores.improvements)
+                            .padding(.horizontal, NKSpacing.xl)
+                            .padding(.top, NKSpacing.xxl)
                     }
                 } else {
-                    Text("Not enough reps for scoring (need 2+)")
-                        .font(.callout)
-                        .foregroundStyle(.white.opacity(0.5))
-                        .padding()
-                        .frame(maxWidth: .infinity)
-                        .background(Color.white.opacity(0.05))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    VStack(spacing: NKSpacing.md) {
+                        Image(systemName: "chart.bar.xaxis")
+                            .font(.system(size: 32))
+                            .foregroundStyle(Color.nkOutlineVariant)
+                        Text("Complete 2+ reps for form scoring")
+                            .font(.nkBodyMD)
+                            .foregroundStyle(Color.nkOnSurfaceVariant)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(NKSpacing.section)
+                    .nkCard()
+                    .padding(.horizontal, NKSpacing.xl)
+                    .padding(.top, NKSpacing.xxl)
                 }
 
-                HStack(spacing: 12) {
-                    Button("New Session") {
+                VStack(spacing: NKSpacing.md) {
+                    Button {
                         sessionSaved = false
                         viewModel.resetSession()
+                    } label: {
+                        HStack(spacing: NKSpacing.sm) {
+                            Image(systemName: "arrow.counterclockwise")
+                            Text("New Session")
+                        }
                     }
-                    .buttonStyle(Phase0ButtonStyle())
+                    .buttonStyle(NKPrimaryButtonStyle())
 
-                    Button("Done") {
-                        dismiss()
+                    Button { dismiss() } label: {
+                        Text("Done")
                     }
-                    .buttonStyle(Phase0ButtonStyle(isPrimary: true))
+                    .buttonStyle(NKSecondaryButtonStyle())
                 }
-                .padding(.bottom, 40)
+                .padding(.horizontal, NKSpacing.xl)
+                .padding(.top, NKSpacing.section)
+                .padding(.bottom, NKSpacing.section)
             }
-            .padding()
+        }
+        .nkPageBackground()
+    }
+
+    private func summaryScoresGrid(_ scores: FormScores) -> some View {
+        VStack(spacing: NKSpacing.lg) {
+            HStack(spacing: NKSpacing.lg) {
+                summaryMetricCard("DEPTH", scores.depth)
+                summaryMetricCard("ALIGNMENT", scores.alignment)
+            }
+            HStack(spacing: NKSpacing.lg) {
+                summaryMetricCard("CONSISTENCY", scores.consistency)
+                summaryMetricCard("COMPOSITE", scores.composite)
+            }
         }
     }
 
-    private func statusDot(_ ok: Bool) -> some View {
-        Circle()
-            .fill(ok ? .green : .red)
-            .frame(width: 8, height: 8)
-    }
-
-    private func scoreRow(_ label: String, _ value: Int) -> some View {
-        HStack {
+    private func summaryMetricCard(_ label: String, _ value: Int) -> some View {
+        VStack(alignment: .leading, spacing: NKSpacing.sm) {
             Text(label)
-                .foregroundStyle(.white.opacity(0.7))
-            Spacer()
-            Text("\(value)")
-                .font(.title2.bold().monospacedDigit())
-                .foregroundStyle(scoreColor(value))
+                .font(.nkLabelXS)
+                .tracking(1.5)
+                .textCase(.uppercase)
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+            HStack(alignment: .firstTextBaseline, spacing: NKSpacing.micro) {
+                Text("\(value)")
+                    .font(.system(size: 28, weight: .heavy))
+                    .monospacedDigit()
+                    .foregroundStyle(Color.nkScoreColor(value))
+                Text(Color.nkScoreLabel(value))
+                    .font(.nkLabelXS)
+                    .foregroundStyle(Color.nkOnSurfaceVariant)
+            }
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(Color.nkSurfaceContainerHighest)
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.nkScoreColor(value), Color.nkScoreColor(value).opacity(0.6)],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            )
+                        )
+                        .frame(width: geo.size.width * CGFloat(value) / 100.0)
+                }
+            }
+            .frame(height: 4)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(NKSpacing.xl)
+        .nkCardElevated()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label): \(value) out of 100, \(Color.nkScoreLabel(value))")
+    }
+
+    private func summaryImprovements(_ improvements: [String]) -> some View {
+        VStack(alignment: .leading, spacing: NKSpacing.lg) {
+            Text("FORM CALIBRATION TIPS")
+                .nkPrimaryLabel()
+
+            ForEach(Array(improvements.enumerated()), id: \.offset) { idx, text in
+                HStack(alignment: .top, spacing: NKSpacing.lg) {
+                    Text(String(format: "%02d", idx + 1))
+                        .font(.system(size: 20, weight: .heavy))
+                        .italic()
+                        .foregroundStyle(Color.nkOutlineVariant)
+                    Text(text)
+                        .font(.nkBodyMD)
+                        .foregroundStyle(Color.nkOnSurfaceVariant)
+                        .lineSpacing(3)
+                }
+                .padding(NKSpacing.lg)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(Color.nkSurfaceContainerLow)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
         }
     }
 
-    private func scoreColor(_ value: Int) -> Color {
-        if value >= 80 { return .green }
-        if value >= 60 { return .yellow }
-        return Color(red: 1.0, green: 0.42, blue: 0.42)
+    // MARK: - Debug Panel (hidden by default)
+
+    private var debugPanel: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.md) {
+            HStack {
+                Text("DEBUG LOG")
+                    .nkTechnicalLabel()
+                Spacer()
+                Button {
+                    viewModel.copyDebugLogsToPasteboard()
+                } label: {
+                    Text("Copy")
+                }
+                .buttonStyle(NKGhostButtonStyle())
+            }
+
+            ScrollView {
+                Text(viewModel.debugLogText)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(Color.nkPrimary.opacity(0.8))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }
+            .frame(minHeight: 140, maxHeight: 200)
+            .padding(NKSpacing.md)
+            .background(Color.nkSurfaceContainerLowest)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .padding(NKSpacing.lg)
+        .nkCardElevated()
     }
 }
 
@@ -1186,12 +1325,15 @@ struct Phase0ButtonStyle: ButtonStyle {
 
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.callout.bold())
-            .foregroundStyle(isPrimary ? .black : .white)
+            .font(.system(size: 13, weight: .bold))
+            .textCase(.uppercase)
+            .tracking(1)
+            .foregroundStyle(isPrimary ? Color.nkOnPrimaryContainer : Color.nkOnSurface)
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(isPrimary ? Color(red: 1.0, green: 0.42, blue: 0.42) : Color.white.opacity(0.15))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
-            .opacity(configuration.isPressed ? 0.7 : 1.0)
+            .background(isPrimary ? LinearGradient.kineticGradient : LinearGradient(colors: [Color.nkSurfaceContainerHighest], startPoint: .leading, endPoint: .trailing))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
+            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }

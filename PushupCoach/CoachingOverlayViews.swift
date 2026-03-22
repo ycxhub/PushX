@@ -16,35 +16,41 @@ struct ShoulderLevelHUDView: View {
     var body: some View {
         Group {
             if isVisible {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Shoulders")
-                        .font(.caption2.bold())
-                        .foregroundStyle(.white.opacity(0.85))
+                VStack(alignment: .leading, spacing: NKSpacing.micro) {
+                    Text("SHOULDERS")
+                        .font(.nkLabelXS)
+                        .textCase(.uppercase)
+                        .tracking(1)
+                        .foregroundStyle(Color.nkOnSurfaceVariant)
+
                     GeometryReader { geo in
                         ZStack(alignment: .leading) {
                             Capsule()
-                                .fill(Color.white.opacity(0.15))
+                                .fill(Color.nkSurfaceContainerHighest)
                             Capsule()
                                 .fill(levelColor)
                                 .frame(width: max(4, geo.size.width * tiltSeverity))
                         }
                     }
                     .frame(width: 72, height: 8)
+
                     Text(levelLabel)
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.75))
+                        .font(.nkLabelSM)
+                        .textCase(.uppercase)
+                        .tracking(1)
+                        .foregroundStyle(Color.nkOnSurface)
                 }
-                .padding(10)
-                .background(.black.opacity(0.45))
+                .padding(NKSpacing.md)
+                .background(Color.nkSurface.opacity(0.7))
                 .clipShape(RoundedRectangle(cornerRadius: 10))
             }
         }
     }
 
     private var levelColor: Color {
-        if tiltSeverity < 0.25 { return Color(red: 0.3, green: 0.9, blue: 0.5) }
-        if tiltSeverity < 0.55 { return .yellow }
-        return Color(red: 1.0, green: 0.42, blue: 0.42)
+        if tiltSeverity < 0.25 { return Color.nkPrimary }
+        if tiltSeverity < 0.55 { return Color.nkSecondary }
+        return Color.nkError
     }
 
     private var levelLabel: String {

@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary-fixed-dim": "#00d4ec",
+                        "surface-container-high": "#20201f",
+                        "primary-container": "#00e3fd",
+                        "surface-container-low": "#131313",
+                        "surface-tint": "#81ecff",
+                        "on-background": "#ffffff",
+                        "inverse-primary": "#006976",
+                        "primary": "#81ecff",
+                        "tertiary": "#70aaff",
+                        "primary-dim": "#00d4ec",
+                        "on-tertiary-container": "#001d3f",
+                        "surface-container": "#1a1a1a",
+                        "secondary-fixed-dim": "#10d5ff",
+                        "on-secondary-container": "#edfaff",
+                        "tertiary-fixed": "#80b2ff",
+                        "secondary-container": "#00677d",
+                        "on-secondary": "#004554",
+                        "secondary": "#10d5ff",
+                        "inverse-on-surface": "#565555",
+                        "surface-variant": "#262626",
+                        "on-error": "#490006",
+                        "on-secondary-fixed-variant": "#00586b",
+                        "error-dim": "#d7383b",
+                        "outline-variant": "#484847",
+                        "on-primary-fixed": "#003840",
+                        "surface-dim": "#0e0e0e",
+                        "tertiary-fixed-dim": "#65a4ff",
+                        "error": "#ff716c",
+                        "on-primary-fixed-variant": "#005762",
+                        "secondary-dim": "#00c6ee",
+                        "background": "#0e0e0e",
+                        "on-tertiary-fixed-variant": "#003971",
+                        "on-tertiary-fixed": "#001835",
+                        "surface-container-highest": "#262626",
+                        "tertiary-container": "#599cf9",
+                        "error-container": "#9f0519",
+                        "on-surface-variant": "#adaaaa",
+                        "surface-container-lowest": "#000000",
+                        "on-surface": "#ffffff",
+                        "surface": "#0e0e0e",
+                        "secondary-fixed": "#78dfff",
+                        "on-error-container": "#ffa8a3",
+                        "tertiary-dim": "#5c9ffc",
+                        "outline": "#767575",
+                        "on-secondary-fixed": "#003a47",
+                        "on-primary-container": "#004d57",
+                        "surface-bright": "#2c2c2c",
+                        "primary-fixed": "#00e3fd",
+                        "on-tertiary": "#002a55",
+                        "inverse-surface": "#fcf9f8",
+                        "on-primary": "#005762"
+                    },
+                    fontFamily: {
+                        "headline": ["Inter", "system-ui", "-apple-system", "sans-serif"],
+                        "body": ["Inter", "system-ui", "-apple-system", "sans-serif"],
+                        "label": ["Inter", "system-ui", "-apple-system", "sans-serif"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        body {
+            background-color: #0e0e0e;
+            color: #ffffff;
+            -webkit-font-smoothing: antialiased;
+        }
+        .kinetic-gradient {
+            background: linear-gradient(135deg, #81ecff 0%, #00e3fd 100%);
+        }
+        .obsidian-blur {
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface selection:bg-primary selection:text-on-primary">
+<!-- TopAppBar -->
+<header class="bg-[#0e0e0e] dark:bg-[#0e0e0e] fixed top-0 w-full z-50 flex justify-between items-center px-5 py-4">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-lg overflow-hidden border border-outline-variant/15">
+<img class="w-full h-full object-cover grayscale" data-alt="Close up of athlete's focused face" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAT2D3gXbGDm-BI2__fN6utdR_YOlsVQk1Gn_cFScjTxsVvQiCbInf9T7Bh-H0zJDMcDHfcMrogHW2TXnC98nxFenl-0p94Hs3TeEd1fXbnaBvPv681VYKKuVqraNS4VkXvUB06xlh2SR1bA-5grWmCsE_OrU482xUKqqk5lMNvWIzX82lygNXkuxrRQiPqDrb97Ipp6uh7hIcpyaFI6GrZkVIULpWZ9fnLz0HInCHcF1sh9WwiTJnjlu2axBqrY3JV41QxkYAXrNOz"/>
+</div>
+<h1 class="font-sans font-black tracking-widest uppercase text-2xl text-[#81ecff]">PUSHX</h1>
+</div>
+<div class="active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[#81ecff] text-2xl">settings</span>
+</div>
+<!-- Separation Line -->
+<div class="absolute bottom-0 left-0 bg-gradient-to-b from-[#1a1a1a] to-transparent h-px w-full"></div>
+</header>
+<main class="pt-24 pb-32 px-5 max-w-2xl mx-auto space-y-10">
+<!-- Hero Section: Streak & Core Metric -->
+<section class="relative space-y-2">
+<div class="flex justify-between items-end">
+<div class="space-y-1">
+<span class="text-[0.6875rem] font-bold tracking-[0.05rem] uppercase text-on-surface-variant">CURRENT STREAK</span>
+<div class="flex items-baseline gap-2">
+<span class="text-6xl font-black text-primary leading-none">14</span>
+<span class="text-xl font-bold text-primary-dim uppercase tracking-tighter">Days</span>
+</div>
+</div>
+<div class="text-right">
+<span class="text-[0.6875rem] font-bold tracking-[0.05rem] uppercase text-on-surface-variant">TOTAL VOLUME</span>
+<p class="text-2xl font-bold tracking-tighter">1,240 <span class="text-xs text-outline">REPS</span></p>
+</div>
+</div>
+</section>
+<!-- Kinetic Progress Grid (Bento Style) -->
+<section class="grid grid-cols-2 gap-4">
+<!-- Weekly Calibration -->
+<div class="col-span-2 bg-surface-container-low p-5 rounded-xl border border-outline-variant/10">
+<div class="flex justify-between items-center mb-6">
+<span class="text-[0.6875rem] font-bold tracking-[0.05rem] uppercase text-primary">WEEKLY CALIBRATION</span>
+<span class="text-[0.6875rem] font-bold text-on-surface-variant uppercase">OCT 14 - OCT 20</span>
+</div>
+<div class="flex justify-between items-center px-2">
+<div class="flex flex-col items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-primary shadow-[0_0_12px_rgba(129,236,255,0.6)]"></div>
+<span class="text-[0.625rem] font-black text-outline">M</span>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-primary shadow-[0_0_12px_rgba(129,236,255,0.6)]"></div>
+<span class="text-[0.625rem] font-black text-outline">T</span>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-surface-container-highest"></div>
+<span class="text-[0.625rem] font-black text-outline">W</span>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-primary shadow-[0_0_12px_rgba(129,236,255,0.6)]"></div>
+<span class="text-[0.625rem] font-black text-outline">T</span>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-primary shadow-[0_0_12px_rgba(129,236,255,0.6)]"></div>
+<span class="text-[0.625rem] font-black text-outline">F</span>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-surface-container-highest"></div>
+<span class="text-[0.625rem] font-black text-outline">S</span>
+</div>
+<div class="flex flex-col items-center gap-3">
+<div class="w-3 h-3 rounded-full bg-surface-container-highest border border-primary/30"></div>
+<span class="text-[0.625rem] font-black text-primary">S</span>
+</div>
+</div>
+</div>
+<!-- Kinetic Stats -->
+<div class="bg-surface-container p-5 rounded-xl border border-outline-variant/10 flex flex-col justify-between">
+<span class="text-[0.625rem] font-bold tracking-widest uppercase text-on-surface-variant">EXPLOSIVE PHASE</span>
+<div>
+<span class="text-3xl font-black text-white">0.82</span>
+<span class="text-[0.625rem] font-bold text-outline">SEC</span>
+</div>
+</div>
+<div class="bg-surface-container p-5 rounded-xl border border-outline-variant/10 flex flex-col justify-between">
+<span class="text-[0.625rem] font-bold tracking-widest uppercase text-on-surface-variant">ECCENTRIC CONTROL</span>
+<div>
+<span class="text-3xl font-black text-white">2.4</span>
+<span class="text-[0.625rem] font-bold text-outline">SEC</span>
+</div>
+</div>
+</section>
+<!-- CTA: Quick Start -->
+<section class="space-y-6">
+<div class="space-y-1">
+<h2 class="text-[1.75rem] font-black tracking-tighter uppercase leading-tight italic">Pushup Hypertrophy Block</h2>
+<p class="text-on-surface-variant text-sm tracking-tight leading-relaxed max-w-[80%]">Focus: Pectoral major recruitment &amp; scapular stability. Phase 2: Mechanical Overload.</p>
+</div>
+<button class="w-full kinetic-gradient py-6 rounded-lg flex items-center justify-center gap-3 active:scale-[0.98] transition-all shadow-[0_8px_32px_rgba(0,227,253,0.15)]">
+<span class="material-symbols-outlined font-bold text-on-primary-container">play_arrow</span>
+<span class="text-on-primary-container font-black tracking-widest uppercase text-lg">Quick Start</span>
+</button>
+</section>
+<!-- Training Log Preview -->
+<section class="space-y-4">
+<div class="flex justify-between items-center">
+<h3 class="text-[0.6875rem] font-bold tracking-[0.1rem] uppercase text-outline">RECENT PROTOCOLS</h3>
+<span class="text-[0.6875rem] font-bold text-primary uppercase">VIEW LOG</span>
+</div>
+<div class="space-y-3">
+<div class="bg-surface-container-low p-4 rounded-lg flex justify-between items-center group cursor-pointer hover:bg-surface-container transition-colors">
+<div class="flex gap-4 items-center">
+<div class="w-1 h-10 bg-primary/40 group-hover:bg-primary transition-colors"></div>
+<div>
+<p class="font-bold tracking-tight text-white uppercase text-sm">Diamond Pushups</p>
+<p class="text-[0.625rem] text-outline uppercase font-bold">4 Sets • 12 Reps • 0kg</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline text-sm">chevron_right</span>
+</div>
+<div class="bg-surface-container-low p-4 rounded-lg flex justify-between items-center group cursor-pointer hover:bg-surface-container transition-colors">
+<div class="flex gap-4 items-center">
+<div class="w-1 h-10 bg-outline-variant/40 group-hover:bg-primary/40 transition-colors"></div>
+<div>
+<p class="font-bold tracking-tight text-white uppercase text-sm">Weighted Classic</p>
+<p class="text-[0.625rem] text-outline uppercase font-bold">3 Sets • 8 Reps • 10kg</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline text-sm">chevron_right</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="bg-[#0e0e0e]/90 backdrop-blur-xl fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 pb-6 pt-2 border-t border-[#484847]/15 shadow-[0_-4px_24px_rgba(0,229,255,0.08)]">
+<a class="flex flex-col items-center justify-center text-[#81ecff] bg-[#81ecff]/10 rounded-xl px-3 py-1 active:scale-90 duration-150 transition-all" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">fitness_center</span>
+<span class="text-[10px] font-bold tracking-[0.05rem] uppercase">TRAIN</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#484847] px-3 py-1 hover:text-[#81ecff] active:scale-90 duration-150 transition-all" href="#">
+<span class="material-symbols-outlined">history</span>
+<span class="text-[10px] font-bold tracking-[0.05rem] uppercase">HISTORY</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#484847] px-3 py-1 hover:text-[#81ecff] active:scale-90 duration-150 transition-all" href="#">
+<span class="material-symbols-outlined">insights</span>
+<span class="text-[10px] font-bold tracking-[0.05rem] uppercase">INSIGHTS</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#484847] px-3 py-1 hover:text-[#81ecff] active:scale-90 duration-150 transition-all" href="#">
+<span class="material-symbols-outlined">settings_accessibility</span>
+<span class="text-[10px] font-bold tracking-[0.05rem] uppercase">GEAR</span>
+</a>
+</nav>
+</body></html>

@@ -8,42 +8,29 @@ struct HistoryView: View {
     @Environment(\.modelContext) private var modelContext
     @State private var copiedAllToast = false
 
-    private let coral = Color(red: 1.0, green: 0.42, blue: 0.42)
-
     var body: some View {
         ScrollView {
-            VStack(spacing: 16) {
+            VStack(spacing: NKSpacing.lg) {
                 if sessions.isEmpty {
                     emptyState
                 } else {
+                    headerSection
+
                     FormTrendChart(sessions: sessions)
-                        .padding(.horizontal, 4)
-                        .padding(.top, 8)
+                        .padding(.horizontal, NKSpacing.micro)
+                        .padding(.top, NKSpacing.sm)
 
                     if sessions.count >= 2 {
                         exportAllButton
                     }
 
-                    LazyVStack(spacing: 10) {
-                        ForEach(sessions, id: \.id) { session in
-                            NavigationLink(value: session.id) {
-                                sessionRow(session)
-                            }
-                            .buttonStyle(.plain)
-                            .swipeActions(edge: .trailing) {
-                                Button(role: .destructive) {
-                                    SessionStore.delete(session: session, context: modelContext)
-                                } label: {
-                                    Label("Delete", systemImage: "trash")
-                                }
-                            }
-                        }
-                    }
+                    sessionsList
                 }
             }
-            .padding()
+            .padding(.horizontal, NKSpacing.xl)
+            .padding(.vertical, NKSpacing.lg)
         }
-        .background(Color.black.ignoresSafeArea())
+        .nkPageBackground()
         .navigationTitle("History")
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(for: UUID.self) { sessionID in
@@ -53,82 +40,134 @@ struct HistoryView: View {
         }
         .overlay(alignment: .bottom) {
             if copiedAllToast {
-                Text("All sessions copied")
-                    .font(.callout.bold())
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 20)
-                    .padding(.vertical, 10)
-                    .background(coral)
-                    .clipShape(Capsule())
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .padding(.bottom, 24)
+                toastView
             }
         }
         .animation(.easeInOut(duration: 0.25), value: copiedAllToast)
     }
 
-    // MARK: - Subviews
+    // MARK: - Header
 
-    private var emptyState: some View {
-        VStack(spacing: 16) {
-            Spacer(minLength: 80)
-            Image(systemName: "figure.strengthtraining.traditional")
-                .font(.system(size: 48))
-                .foregroundStyle(coral.opacity(0.5))
-            Text("No workouts yet")
-                .font(.title3.bold())
-                .foregroundStyle(.white)
-            Text("Start your first pushup set!")
-                .font(.callout)
-                .foregroundStyle(.white.opacity(0.6))
-            Spacer()
+    private var headerSection: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.xs) {
+            Text("TRAINING LOG")
+                .nkTechnicalLabel()
+
+            Text("\(sessions.count) Sessions")
+                .font(.nkHeadlineMD)
+                .foregroundStyle(Color.nkOnSurface)
         }
-        .frame(maxWidth: .infinity)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(sessions.count) training sessions")
     }
 
+    // MARK: - Empty State
+
+    private var emptyState: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.lg) {
+            Spacer(minLength: 80)
+
+            Image(systemName: "figure.strengthtraining.traditional")
+                .font(.system(size: 56, weight: .thin))
+                .foregroundStyle(Color.nkPrimary.opacity(0.4))
+                .nkAmbientGlow(color: .nkPrimary, radius: 40, opacity: 0.12)
+                .padding(.bottom, NKSpacing.sm)
+
+            Text("NO DATA YET")
+                .nkPrimaryLabel()
+
+            Text("Begin Calibration")
+                .font(.nkHeadlineMD)
+                .foregroundStyle(Color.nkOnSurface)
+
+            Text("Complete your first pushup set to populate the training log.")
+                .font(.nkBodyMD)
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer()
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("No workouts yet. Complete your first pushup set to see history.")
+    }
+
+    // MARK: - Sessions List
+
+    private var sessionsList: some View {
+        LazyVStack(spacing: NKSpacing.md) {
+            ForEach(sessions, id: \.id) { session in
+                NavigationLink(value: session.id) {
+                    sessionRow(session)
+                }
+                .buttonStyle(.plain)
+                .swipeActions(edge: .trailing) {
+                    Button(role: .destructive) {
+                        SessionStore.delete(session: session, context: modelContext)
+                    } label: {
+                        Label("Delete", systemImage: "trash")
+                    }
+                }
+            }
+        }
+    }
+
+    // MARK: - Session Row
+
     private func sessionRow(_ session: PushupSession) -> some View {
-        HStack(spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        HStack(spacing: NKSpacing.md) {
+            VStack(alignment: .leading, spacing: NKSpacing.xs) {
                 Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
-                    .font(.subheadline)
-                    .foregroundStyle(.white)
+                    .font(.nkTitleSM)
+                    .foregroundStyle(Color.nkOnSurface)
 
-                HStack(spacing: 8) {
-                    Text("\(session.repCount) reps")
-                        .font(.caption)
-                        .foregroundStyle(.white.opacity(0.6))
+                HStack(spacing: NKSpacing.sm) {
+                    Text("\(session.repCount) REPS")
+                        .nkTechnicalLabel()
 
-                    Text(session.providerType)
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.4))
-                        .padding(.horizontal, 6)
-                        .padding(.vertical, 2)
-                        .background(Color.white.opacity(0.08))
-                        .clipShape(Capsule())
+                    Text(session.providerType.uppercased())
+                        .font(.nkLabelXS)
+                        .tracking(0.8)
+                        .foregroundStyle(Color.nkOnSurfaceVariant.opacity(0.7))
+                        .padding(.horizontal, NKSpacing.sm)
+                        .padding(.vertical, NKSpacing.micro)
+                        .background(Color.nkSurfaceContainerHighest)
+                        .clipShape(RoundedRectangle(cornerRadius: 4))
                 }
             }
 
             Spacer()
 
             if let score = session.compositeScore {
-                Text("\(score)")
-                    .font(.title2.bold().monospacedDigit())
-                    .foregroundStyle(scoreColor(score))
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(score)")
+                        .font(.nkHeadlineSM.monospacedDigit())
+                        .foregroundStyle(Color.nkScoreColor(score))
+
+                    Text(Color.nkScoreLabel(score).uppercased())
+                        .font(.nkLabelXS)
+                        .tracking(0.8)
+                        .foregroundStyle(Color.nkScoreColor(score).opacity(0.7))
+                }
             } else {
                 Text("—")
-                    .font(.title2.bold())
-                    .foregroundStyle(.white.opacity(0.3))
+                    .font(.nkHeadlineSM)
+                    .foregroundStyle(Color.nkOnSurfaceVariant.opacity(0.3))
             }
 
             Image(systemName: "chevron.right")
-                .font(.caption)
-                .foregroundStyle(.white.opacity(0.3))
+                .font(.system(size: 10, weight: .bold))
+                .foregroundStyle(Color.nkOutlineVariant)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
-        .background(Color.white.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .padding(.horizontal, NKSpacing.lg)
+        .padding(.vertical, NKSpacing.md)
+        .nkCardElevated()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(sessionAccessibilityLabel(session))
     }
+
+    // MARK: - Export Button
 
     private var exportAllButton: some View {
         Button {
@@ -140,18 +179,37 @@ struct HistoryView: View {
             }
         } label: {
             Label("Export All for AI Coach", systemImage: "doc.on.clipboard")
-                .font(.caption.bold())
-                .foregroundStyle(.white.opacity(0.7))
-                .padding(.horizontal, 14)
-                .padding(.vertical, 8)
-                .background(Color.white.opacity(0.08))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
         }
+        .buttonStyle(NKGhostButtonStyle())
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityLabel("Export all sessions to clipboard for AI coach analysis")
     }
 
-    private func scoreColor(_ value: Int) -> Color {
-        if value >= 80 { return .green }
-        if value >= 60 { return .yellow }
-        return coral
+    // MARK: - Toast
+
+    private var toastView: some View {
+        Text("ALL SESSIONS COPIED")
+            .font(.nkLabelSM)
+            .textCase(.uppercase)
+            .tracking(1.5)
+            .foregroundStyle(Color.nkOnPrimary)
+            .padding(.horizontal, NKSpacing.xl)
+            .padding(.vertical, NKSpacing.md)
+            .background(Color.nkPrimary)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .nkAmbientGlow(color: .nkPrimary, radius: 24, opacity: 0.2)
+            .transition(.move(edge: .bottom).combined(with: .opacity))
+            .padding(.bottom, NKSpacing.xxl)
+            .accessibilityLabel("All sessions copied to clipboard")
+    }
+
+    // MARK: - Helpers
+
+    private func sessionAccessibilityLabel(_ session: PushupSession) -> String {
+        var label = "\(session.repCount) reps on \(session.startedAt.formatted(date: .abbreviated, time: .shortened))"
+        if let score = session.compositeScore {
+            label += ", score \(score) \(Color.nkScoreLabel(score))"
+        }
+        return label
     }
 }

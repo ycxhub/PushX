@@ -7,169 +7,410 @@ struct HomeView: View {
 
     @State private var showWorkout = false
 
-    private let coral = Color(red: 1.0, green: 0.42, blue: 0.42)
+    private var totalReps: Int { sessions.reduce(0) { $0 + $1.repCount } }
+    private var totalSessions: Int { sessions.count }
+    private var avgScore: Int? {
+        let scored = sessions.compactMap(\.compositeScore)
+        guard !scored.isEmpty else { return nil }
+        return scored.reduce(0, +) / scored.count
+    }
+    private var currentStreak: Int {
+        guard !sessions.isEmpty else { return 0 }
+        let cal = Calendar.current
+        var streak = 0
+        var checkDate = cal.startOfDay(for: Date())
+        let sessionDays = Set(sessions.map { cal.startOfDay(for: $0.startedAt) })
+        if !sessionDays.contains(checkDate) {
+            checkDate = cal.date(byAdding: .day, value: -1, to: checkDate)!
+        }
+        while sessionDays.contains(checkDate) {
+            streak += 1
+            checkDate = cal.date(byAdding: .day, value: -1, to: checkDate)!
+        }
+        return streak
+    }
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(spacing: 24) {
-                    Spacer(minLength: 40)
+                VStack(spacing: 0) {
+                    header
+                        .padding(.horizontal, NKSpacing.xl)
+                        .padding(.top, NKSpacing.lg)
 
-                    Image(systemName: "figure.strengthtraining.traditional")
-                        .font(.system(size: 56))
-                        .foregroundStyle(coral)
+                    if sessions.isEmpty {
+                        firstTimeHero
+                            .padding(.horizontal, NKSpacing.xl)
+                            .padding(.top, NKSpacing.section)
+                    } else {
+                        heroMetrics
+                            .padding(.horizontal, NKSpacing.xl)
+                            .padding(.top, NKSpacing.xxxl)
 
-                    Text("PushX")
-                        .font(.system(size: 36, weight: .heavy, design: .rounded))
-                        .foregroundStyle(.white)
+                        weeklyCalibration
+                            .padding(.horizontal, NKSpacing.xl)
+                            .padding(.top, NKSpacing.section)
 
-                    Text("AI-powered pushup form tracking")
-                        .font(.callout)
-                        .foregroundStyle(.white.opacity(0.6))
-
-                    if let last = sessions.first {
-                        lastSessionCard(last)
+                        statsGrid
+                            .padding(.horizontal, NKSpacing.xl)
+                            .padding(.top, NKSpacing.lg)
                     }
 
-                    statsRow
+                    startButton
+                        .padding(.horizontal, NKSpacing.xl)
+                        .padding(.top, NKSpacing.section)
 
-                    Button {
-                        showWorkout = true
-                    } label: {
-                        Text("Start Pushups")
-                            .font(.headline)
-                            .foregroundStyle(.black)
-                            .frame(maxWidth: .infinity)
-                            .padding(.vertical, 18)
-                            .background(coral)
-                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    if !sessions.isEmpty {
+                        recentSessions
+                            .padding(.horizontal, NKSpacing.xl)
+                            .padding(.top, NKSpacing.section)
                     }
-                    .padding(.horizontal, 40)
-
-                    NavigationLink {
-                        HistoryView()
-                    } label: {
-                        HStack {
-                            Image(systemName: "clock.arrow.circlepath")
-                            Text("View History")
-                        }
-                        .font(.callout.bold())
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(Color.white.opacity(0.1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-                    }
-                    .padding(.horizontal, 40)
 
                     setupTips
-                        .padding(.horizontal, 20)
-
-                    Spacer(minLength: 40)
+                        .padding(.horizontal, NKSpacing.xl)
+                        .padding(.top, NKSpacing.section)
+                        .padding(.bottom, NKSpacing.section)
                 }
             }
-            .background(Color.black.ignoresSafeArea())
+            .nkPageBackground()
             .fullScreenCover(isPresented: $showWorkout) {
                 Phase0TestView()
+            }
+            .navigationDestination(for: UUID.self) { sessionID in
+                if let session = sessions.first(where: { $0.id == sessionID }) {
+                    SessionDetailView(session: session)
+                }
             }
         }
         .preferredColorScheme(.dark)
     }
 
-    // MARK: - Subviews
+    // MARK: - Header
 
-    private func lastSessionCard(_ session: PushupSession) -> some View {
-        VStack(spacing: 8) {
-            Text("Last Workout")
-                .font(.caption.bold())
-                .foregroundStyle(.white.opacity(0.5))
+    private var header: some View {
+        HStack {
+            Text("PushX")
+                .font(.system(size: 24, weight: .black))
+                .tracking(3)
+                .foregroundStyle(Color.nkPrimary)
+            Spacer()
+            NavigationLink {
+                HistoryView()
+            } label: {
+                Image(systemName: "clock.arrow.circlepath")
+                    .font(.system(size: 18, weight: .medium))
+                    .foregroundStyle(Color.nkPrimary)
+                    .frame(width: 40, height: 40)
+                    .background(Color.nkPrimary.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            }
+            .accessibilityLabel("View workout history")
+        }
+    }
 
-            HStack(spacing: 20) {
-                VStack(spacing: 2) {
-                    Text("\(session.repCount)")
-                        .font(.title.bold().monospacedDigit())
-                        .foregroundStyle(.white)
-                    Text("reps")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.5))
+    // MARK: - First Time Hero
+
+    private var firstTimeHero: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.lg) {
+            Text("READY TO CALIBRATE")
+                .nkPrimaryLabel()
+
+            Text("Your First\nSession Awaits")
+                .font(.nkHeadlineMD)
+                .tracking(-0.5)
+                .foregroundStyle(Color.nkOnSurface)
+
+            Text("PushX uses your camera to track pushup form in real-time. No data leaves your device.")
+                .font(.nkBodyMD)
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+                .lineSpacing(4)
+                .padding(.top, NKSpacing.micro)
+
+            HStack(spacing: NKSpacing.md) {
+                Image(systemName: "camera.fill")
+                    .foregroundStyle(Color.nkPrimary)
+                    .frame(width: 36, height: 36)
+                    .background(Color.nkPrimary.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("On-Device AI")
+                        .font(.nkTitleSM)
+                        .foregroundStyle(Color.nkOnSurface)
+                    Text("MediaPipe pose detection — zero cloud processing")
+                        .font(.nkLabelXS)
+                        .foregroundStyle(Color.nkOnSurfaceVariant)
                 }
+            }
+            .padding(NKSpacing.lg)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .nkCardElevated()
+        }
+    }
 
-                if let score = session.compositeScore {
-                    VStack(spacing: 2) {
-                        Text("\(score)")
-                            .font(.title.bold().monospacedDigit())
-                            .foregroundStyle(scoreColor(score))
-                        Text("form")
-                            .font(.caption2)
-                            .foregroundStyle(.white.opacity(0.5))
+    // MARK: - Hero Metrics (Kinetic Asymmetry)
+
+    private var heroMetrics: some View {
+        HStack(alignment: .bottom) {
+            VStack(alignment: .leading, spacing: NKSpacing.micro) {
+                Text("CURRENT STREAK")
+                    .nkTechnicalLabel()
+                HStack(alignment: .firstTextBaseline, spacing: NKSpacing.sm) {
+                    Text("\(currentStreak)")
+                        .font(.system(size: 56, weight: .heavy))
+                        .foregroundStyle(Color.nkPrimary)
+                        .monospacedDigit()
+                    Text("Days")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Color.nkPrimaryDim)
+                        .textCase(.uppercase)
+                        .tracking(-0.5)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Current streak: \(currentStreak) days")
+            }
+
+            Spacer()
+
+            VStack(alignment: .trailing, spacing: NKSpacing.micro) {
+                Text("TOTAL VOLUME")
+                    .nkTechnicalLabel()
+                HStack(alignment: .firstTextBaseline, spacing: NKSpacing.micro) {
+                    Text("\(totalReps)")
+                        .font(.system(size: 24, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Color.nkOnSurface)
+                    Text("REPS")
+                        .font(.nkLabelXS)
+                        .foregroundStyle(Color.nkOutline)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Total volume: \(totalReps) reps")
+            }
+        }
+    }
+
+    // MARK: - Weekly Calibration
+
+    private var weeklyCalibration: some View {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let weekday = cal.component(.weekday, from: today)
+        let mondayOffset = (weekday + 5) % 7
+        let monday = cal.date(byAdding: .day, value: -mondayOffset, to: today)!
+        let sessionDays = Set(sessions.map { cal.startOfDay(for: $0.startedAt) })
+        let dayLabels = ["M", "T", "W", "T", "F", "S", "S"]
+
+        return VStack(spacing: NKSpacing.lg) {
+            HStack {
+                Text("WEEKLY CALIBRATION")
+                    .nkPrimaryLabel()
+                Spacer()
+                Text(monday.formatted(.dateTime.month(.abbreviated).day()) + " – " + today.formatted(.dateTime.month(.abbreviated).day()))
+                    .nkTechnicalLabel()
+            }
+
+            HStack {
+                ForEach(0..<7, id: \.self) { i in
+                    let day = cal.date(byAdding: .day, value: i, to: monday)!
+                    let isToday = cal.isDate(day, inSameDayAs: today)
+                    let hasSession = sessionDays.contains(cal.startOfDay(for: day))
+                    let isFuture = day > today
+
+                    VStack(spacing: NKSpacing.sm) {
+                        Circle()
+                            .fill(hasSession ? Color.nkPrimary : (isFuture ? Color.clear : Color.nkSurfaceContainerHighest))
+                            .frame(width: 12, height: 12)
+                            .shadow(color: hasSession ? Color.nkPrimary.opacity(0.6) : .clear, radius: 6)
+                            .overlay {
+                                if isToday && !hasSession {
+                                    Circle()
+                                        .stroke(Color.nkPrimary.opacity(0.3), lineWidth: 1)
+                                }
+                            }
+                        Text(dayLabels[i])
+                            .font(.system(size: 10, weight: .black))
+                            .foregroundStyle(isToday ? Color.nkPrimary : Color.nkOutline)
                     }
-                }
-
-                VStack(spacing: 2) {
-                    Text(session.startedAt.formatted(.dateTime.month(.abbreviated).day()))
-                        .font(.callout.bold())
-                        .foregroundStyle(.white.opacity(0.8))
-                    Text("date")
-                        .font(.caption2)
-                        .foregroundStyle(.white.opacity(0.5))
+                    .frame(maxWidth: .infinity)
+                    .accessibilityElement(children: .combine)
+                    .accessibilityLabel("\(dayLabels[i]): \(hasSession ? "completed" : "no workout")")
                 }
             }
         }
-        .padding()
-        .frame(maxWidth: .infinity)
-        .background(Color.white.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
-        .padding(.horizontal, 20)
+        .padding(NKSpacing.xl)
+        .background(Color.nkSurfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.nkOutlineVariant.opacity(0.1), lineWidth: 1)
+        )
     }
 
-    private var statsRow: some View {
-        let totalReps = sessions.reduce(0) { $0 + $1.repCount }
-        let totalSessions = sessions.count
-        let avgScore: Int? = {
-            let scored = sessions.compactMap(\.compositeScore)
-            guard !scored.isEmpty else { return nil }
-            return scored.reduce(0, +) / scored.count
-        }()
+    // MARK: - Stats Grid (Bento)
 
-        return HStack(spacing: 16) {
-            statPill("\(totalSessions)", "sets")
-            statPill("\(totalReps)", "total reps")
+    private var statsGrid: some View {
+        HStack(spacing: NKSpacing.lg) {
+            statCard("SESSIONS", "\(totalSessions)")
             if let avg = avgScore {
-                statPill("\(avg)", "avg form")
+                statCard("AVG FORM", "\(avg)", valueColor: .nkScoreColor(avg))
+            } else {
+                statCard("AVG FORM", "—")
             }
         }
-        .padding(.horizontal, 20)
     }
 
-    private func statPill(_ value: String, _ label: String) -> some View {
-        VStack(spacing: 2) {
-            Text(value)
-                .font(.callout.bold().monospacedDigit())
-                .foregroundStyle(.white)
+    private func statCard(_ label: String, _ value: String, valueColor: Color = .nkOnSurface) -> some View {
+        VStack(alignment: .leading, spacing: NKSpacing.sm) {
             Text(label)
-                .font(.caption2)
-                .foregroundStyle(.white.opacity(0.5))
+                .font(.nkLabelXS)
+                .tracking(1.5)
+                .textCase(.uppercase)
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+            Text(value)
+                .font(.system(size: 28, weight: .heavy))
+                .monospacedDigit()
+                .foregroundStyle(valueColor)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 10)
-        .background(Color.white.opacity(0.06))
-        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(NKSpacing.xl)
+        .nkCardElevated()
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("\(label): \(value)")
     }
+
+    // MARK: - Start Button (Kinetic CTA)
+
+    private var startButton: some View {
+        Button {
+            showWorkout = true
+        } label: {
+            HStack(spacing: NKSpacing.md) {
+                Image(systemName: "play.fill")
+                    .font(.system(size: 16, weight: .bold))
+                Text("Start Session")
+            }
+        }
+        .buttonStyle(NKPrimaryButtonStyle())
+        .accessibilityHint("Opens the camera for a pushup workout session")
+    }
+
+    // MARK: - Recent Sessions
+
+    private var recentSessions: some View {
+        VStack(spacing: NKSpacing.lg) {
+            HStack {
+                Text("RECENT SESSIONS")
+                    .font(.nkLabelSM)
+                    .tracking(1.5)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Color.nkOutline)
+                Spacer()
+                NavigationLink {
+                    HistoryView()
+                } label: {
+                    Text("VIEW ALL")
+                        .font(.nkLabelSM)
+                        .tracking(1)
+                        .textCase(.uppercase)
+                        .foregroundStyle(Color.nkPrimary)
+                }
+                .accessibilityLabel("View all workout history")
+            }
+
+            VStack(spacing: NKSpacing.md) {
+                ForEach(sessions.prefix(3), id: \.id) { session in
+                    NavigationLink(value: session.id) {
+                        sessionRow(session)
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+    }
+
+    private func sessionRow(_ session: PushupSession) -> some View {
+        HStack(spacing: NKSpacing.lg) {
+            Rectangle()
+                .fill(session.compositeScore.map { Color.nkScoreColor($0) } ?? Color.nkOutlineVariant.opacity(0.4))
+                .frame(width: 3, height: 40)
+                .clipShape(RoundedRectangle(cornerRadius: 2))
+
+            VStack(alignment: .leading, spacing: NKSpacing.micro) {
+                Text("\(session.repCount) Reps")
+                    .font(.nkTitleSM)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Color.nkOnSurface)
+                Text(session.startedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
+                    .font(.nkLabelXS)
+                    .textCase(.uppercase)
+                    .foregroundStyle(Color.nkOutline)
+            }
+
+            Spacer()
+
+            if let score = session.compositeScore {
+                VStack(alignment: .trailing, spacing: 2) {
+                    Text("\(score)")
+                        .font(.system(size: 22, weight: .bold))
+                        .monospacedDigit()
+                        .foregroundStyle(Color.nkScoreColor(score))
+                    Text(Color.nkScoreLabel(score))
+                        .font(.nkLabelXS)
+                        .foregroundStyle(Color.nkOnSurfaceVariant)
+                }
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel("Form score \(score), \(Color.nkScoreLabel(score))")
+            }
+
+            Image(systemName: "chevron.right")
+                .font(.caption)
+                .foregroundStyle(Color.nkOutline)
+        }
+        .padding(.horizontal, NKSpacing.lg)
+        .padding(.vertical, NKSpacing.md)
+        .background(Color.nkSurfaceContainerLow)
+        .clipShape(RoundedRectangle(cornerRadius: 8))
+    }
+
+    // MARK: - Setup Tips
 
     private var setupTips: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Label("Lean phone against a wall, screen facing you", systemImage: "iphone")
-            Label("Portrait orientation (tall, not sideways)", systemImage: "arrow.up")
-            Label("Step back 2–3 feet in pushup position", systemImage: "figure.strengthtraining.traditional")
-            Label("Good lighting, upper body in view", systemImage: "light.max")
+        VStack(alignment: .leading, spacing: NKSpacing.lg) {
+            HStack(spacing: NKSpacing.md) {
+                Image(systemName: "brain.head.profile")
+                    .foregroundStyle(Color.nkPrimary)
+                    .frame(width: 32, height: 32)
+                    .background(Color.nkPrimary.opacity(0.1))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                Text("SETUP PROTOCOL")
+                    .nkPrimaryLabel()
+            }
+
+            VStack(alignment: .leading, spacing: NKSpacing.md) {
+                tipRow(icon: "iphone", text: "Lean phone against a wall, screen facing you")
+                tipRow(icon: "arrow.up", text: "Portrait orientation — tall, not sideways")
+                tipRow(icon: "figure.strengthtraining.traditional", text: "Step back 2–3 feet in pushup position")
+                tipRow(icon: "light.max", text: "Bright lighting, upper body fully visible")
+            }
         }
-        .font(.caption)
-        .foregroundStyle(.white.opacity(0.5))
+        .padding(NKSpacing.xl)
+        .background(Color.nkSurfaceContainerHighest.opacity(0.3))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+        .overlay(
+            RoundedRectangle(cornerRadius: 12)
+                .stroke(Color.nkPrimary.opacity(0.1), lineWidth: 1)
+        )
     }
 
-    private func scoreColor(_ value: Int) -> Color {
-        if value >= 80 { return .green }
-        if value >= 60 { return .yellow }
-        return coral
+    private func tipRow(icon: String, text: String) -> some View {
+        HStack(spacing: NKSpacing.md) {
+            Image(systemName: icon)
+                .font(.system(size: 12))
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+                .frame(width: 20)
+            Text(text)
+                .font(.nkBodyMD)
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+        }
     }
 }
