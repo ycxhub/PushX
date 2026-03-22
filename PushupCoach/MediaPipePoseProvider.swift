@@ -1,16 +1,22 @@
 import MediaPipeTasksVision
 import CoreMedia
 import CoreGraphics
+import Foundation
 import ImageIO
 import UIKit
 
 /// BlazePose via MediaPipe Tasks (`pose_landmarker_full.task` in the app bundle).
 /// **Default model:** full — best accuracy/latency tradeoff for Phase 0; swap the `.task` asset for
 /// `pose_landmarker_lite` or `pose_landmarker_heavy` from Google’s MediaPipe Tasks iOS pack if you need speed or max quality.
+///
+/// `PoseLandmarker` is created lazily on the **first** `detectPose` call (the camera delegate queue), not in `init`.
+/// Eager init on the main actor blocked the UI for a long time (Metal) while the start button waited on `configureAndStart`.
 final class MediaPipePoseProvider: PoseProvider {
     let providerType: PoseProviderType = .mediaPipe
 
+    private let landmarkerLock = NSLock()
     private var poseLandmarker: PoseLandmarker?
+    private var landmarkerSetupFailed = false
 
     /// MediaPipe's 33-landmark indices mapped to our LandmarkType.
     private static let indexToType: [Int: LandmarkType] = [
@@ -49,14 +55,23 @@ final class MediaPipePoseProvider: PoseProvider {
         32: .rightFootIndex,
     ]
 
-    init() {
-        setupLandmarker()
-    }
+    init() {}
 
-    private func setupLandmarker() {
+    /// Thread-safe one-shot setup; runs on the camera sample-buffer queue (not the main actor).
+    private func ensureLandmarker() -> Bool {
+        if poseLandmarker != nil { return true }
+        if landmarkerSetupFailed { return false }
+
+        landmarkerLock.lock()
+        defer { landmarkerLock.unlock() }
+
+        if poseLandmarker != nil { return true }
+        if landmarkerSetupFailed { return false }
+
         guard let modelPath = Bundle.main.path(forResource: "pose_landmarker_full", ofType: "task") else {
             print("[MediaPipePoseProvider] Model file not found in bundle")
-            return
+            landmarkerSetupFailed = true
+            return false
         }
 
         let options = PoseLandmarkerOptions()
@@ -69,13 +84,16 @@ final class MediaPipePoseProvider: PoseProvider {
 
         do {
             poseLandmarker = try PoseLandmarker(options: options)
+            return true
         } catch {
+            landmarkerSetupFailed = true
             print("[MediaPipePoseProvider] Failed to create PoseLandmarker: \(error)")
+            return false
         }
     }
 
     func detectPose(in sampleBuffer: CMSampleBuffer, orientation: CGImagePropertyOrientation) -> PoseResult? {
-        guard let landmarker = poseLandmarker else { return nil }
+        guard ensureLandmarker(), let landmarker = poseLandmarker else { return nil }
 
         let mpOrientation = orientation.uiImageOrientation
         let mpImage: MPImage

@@ -2,6 +2,27 @@ import SwiftUI
 import AVFoundation
 import UIKit
 
+enum CameraStartupPhase: Equatable {
+    case idle
+    case requestingPermission
+    case configuringSession
+    case running
+    case failed
+}
+
+private enum CameraPermissionResolution {
+    case authorized
+    case denied
+    case timedOut
+}
+
+private enum CameraPermissionOutcome {
+    case alreadyAuthorized
+    case grantedAfterPrompt
+    case denied
+    case timedOut
+}
+
 @MainActor
 final class Phase0ViewModel: ObservableObject {
     @Published var repCount: Int = 0
@@ -11,9 +32,10 @@ final class Phase0ViewModel: ObservableObject {
     @Published var trackingState: PoseTrackingState = .lost
     @Published var coachingBanner: String = ""
     @Published var fps: Double = 0
+    /// Default pose backend for new sessions (`MediaPipe` = BlazePose task; lazy-loaded off the main thread).
     @Published var providerType: PoseProviderType = .mediaPipe
     @Published var formScores: FormScores?
-    @Published var isRunning: Bool = false
+    @Published private(set) var cameraStartupPhase: CameraStartupPhase = .idle
     @Published var debugMessages: [String] = []
     @Published var latestNoseY: CGFloat = 0
     @Published var depthPercent: CGFloat = 0
@@ -24,7 +46,7 @@ final class Phase0ViewModel: ObservableObject {
     @Published var shoulderImbalanceMetric: CGFloat = 0
     @Published var repAnimToken: Int = 0
     @Published var cameraErrorMessage: String?
-    @Published var isStartingCamera: Bool = false
+    @Published var processedFrameCount: Int = 0
 
     @Published var bodyDetected: Bool = false
     @Published var landmarksVisible: Bool = false
@@ -52,13 +74,70 @@ final class Phase0ViewModel: ObservableObject {
     private var latestSmoothedPose: PoseResult?
 
     private var lastRepCount: Int = 0
+    private var startupAttemptID: UUID?
+    private var startupWatchdogTask: Task<Void, Never>?
 
     var captureSession: AVCaptureSession { cameraManager.session }
+    var isStartingCamera: Bool {
+        switch cameraStartupPhase {
+        case .requestingPermission, .configuringSession:
+            return true
+        case .idle, .running, .failed:
+            return false
+        }
+    }
+
+    var isRunning: Bool {
+        switch cameraStartupPhase {
+        case .running:
+            return true
+        case .idle, .requestingPermission, .configuringSession, .failed:
+            return false
+        }
+    }
+
+    var startupStatusText: String {
+        switch cameraStartupPhase {
+        case .idle:
+            return ""
+        case .requestingPermission:
+            return "Requesting camera access…"
+        case .configuringSession:
+            return "Starting camera…"
+        case .running:
+            return "Camera live"
+        case .failed:
+            return "Camera failed to start"
+        }
+    }
+
+    var startupBannerText: String {
+        switch cameraStartupPhase {
+        case .idle:
+            return "State: Idle"
+        case .requestingPermission:
+            return "State: Requesting camera access"
+        case .configuringSession:
+            return "State: Configuring capture session"
+        case .running:
+            return "State: Camera running"
+        case .failed:
+            return "State: Camera failed"
+        }
+    }
+
+    var debugLogText: String {
+        if debugMessages.isEmpty {
+            return "No logs yet."
+        }
+        return debugMessages.joined(separator: "\n")
+    }
 
     func setPreviewLayer(_ layer: AVCaptureVideoPreviewLayer, overlaySize: CGSize) {
-        previewLayer = layer
+        if previewLayer !== layer {
+            previewLayer = layer
+        }
         self.overlaySize = overlaySize
-        objectWillChange.send()
     }
 
     func updateOverlayContainerSize(_ size: CGSize) {
@@ -66,76 +145,50 @@ final class Phase0ViewModel: ObservableObject {
     }
 
     func startCamera() {
-        Task { @MainActor in
-            cameraErrorMessage = nil
+        cameraErrorMessage = nil
+        guard !isStartingCamera, cameraStartupPhase != .running else { return }
 
-            let authorized: Bool
-            switch AVCaptureDevice.authorizationStatus(for: .video) {
-            case .authorized:
-                authorized = true
-            case .denied, .restricted:
-                cameraErrorMessage = "Camera access is off for PushupCoach. Enable it in Settings → Privacy & Security → Camera."
-                addDebug("Camera access denied — enable in Settings › Privacy & Camera")
-                return
-            case .notDetermined:
-                authorized = await AVCaptureDevice.requestAccess(for: .video)
-            @unknown default:
-                authorized = await AVCaptureDevice.requestAccess(for: .video)
-            }
+        let attemptID = UUID()
+        startupAttemptID = attemptID
+        updateCameraStartupPhase(.requestingPermission, log: "Start requested")
+        addDebug("Camera authorization status: \(Self.describeAuthorizationStatus(AVCaptureDevice.authorizationStatus(for: .video)))")
 
-            guard authorized else {
-                cameraErrorMessage = "Camera access is required to start a session. You can enable it in Settings → Privacy & Security → Camera."
-                addDebug("Camera access denied after prompt")
-                return
-            }
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            guard let self else { return }
 
-            isStartingCamera = true
-            defer { isStartingCamera = false }
+            let permission = Self.resolveCameraPermissionBlocking(timeoutSeconds: 8)
 
-            // MediaPipe (Metal) must initialize on the main thread; `Task.detached` here deadlocks
-            // the main actor waiting on work that needs the main queue.
-            let provider: any PoseProvider
-            if providerType == .mediaPipe {
-                if mediaPipeProvider == nil {
-                    mediaPipeProvider = MediaPipePoseProvider()
-                }
-                provider = mediaPipeProvider!
-            } else {
-                provider = appleVisionProvider
-            }
-
-            let setupError: Error? = await withCheckedContinuation { cont in
-                cameraManager.configureAndStart(provider: provider) { error in
-                    cont.resume(returning: error)
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                guard self.startupAttemptID == attemptID else { return }
+                switch permission {
+                case .alreadyAuthorized:
+                    self.addDebug("Camera permission already authorized")
+                    self.beginCaptureStartup(attemptID: attemptID)
+                case .grantedAfterPrompt:
+                    self.addDebug("Camera permission granted")
+                    self.beginCaptureStartup(attemptID: attemptID)
+                case .denied:
+                    self.cameraErrorMessage = "Camera access is required to start a session. You can enable it in Settings → Privacy & Security → Camera."
+                    self.addDebug("Camera permission denied")
+                    self.updateCameraStartupPhase(.failed)
+                    self.startupAttemptID = nil
+                case .timedOut:
+                    self.cameraErrorMessage = "Camera permission did not resolve in time. Please try again."
+                    self.addDebug("Camera permission request timed out after 8 seconds")
+                    self.updateCameraStartupPhase(.failed)
+                    self.startupAttemptID = nil
                 }
             }
-
-            if let setupError {
-                cameraErrorMessage = setupError.localizedDescription
-                addDebug("Camera setup failed: \(setupError.localizedDescription)")
-                return
-            }
-
-            cameraManager.onPoseResult = { [weak self] result in
-                Task { @MainActor [weak self] in
-                    self?.handlePoseSample(result)
-                }
-            }
-
-            cameraManager.onFrameProcessed = { [weak self] in
-                Task { @MainActor [weak self] in
-                    self?.updateFPS()
-                }
-            }
-
-            isRunning = true
-            addDebug("Camera started — provider: \(providerType.rawValue). Phone flat on floor, portrait, screen up.")
         }
     }
 
     func stopCamera() {
+        cancelStartupWatchdog()
+        startupAttemptID = nil
         cameraManager.clearOutputCallbacks()
-        isRunning = false
+        cameraManager.onStartupEvent = nil
+        updateCameraStartupPhase(.idle, log: "Stop requested")
 
         cameraManager.stop { [weak self] in
             Task { @MainActor in
@@ -169,12 +222,18 @@ final class Phase0ViewModel: ObservableObject {
         debugMessages = []
         depthPercent = 0
         latestNoseY = 0
+        processedFrameCount = 0
         bodyDetected = false
         landmarksVisible = false
         distanceOK = false
         isCalibratedForPushup = false
         latestSmoothedPose = nil
         addDebug("Session reset")
+    }
+
+    func copyDebugLogsToPasteboard() {
+        UIPasteboard.general.string = debugLogText
+        addDebug("Debug logs copied to clipboard")
     }
 
     func switchProvider() {
@@ -369,6 +428,143 @@ final class Phase0ViewModel: ObservableObject {
             debugMessages.removeFirst(debugMessages.count - 50)
         }
     }
+
+    private func updateCameraStartupPhase(_ phase: CameraStartupPhase, log: String? = nil) {
+        cameraStartupPhase = phase
+        if let log {
+            addDebug(log)
+        }
+    }
+
+    private func beginCaptureStartup(attemptID: UUID) {
+        let provider: any PoseProvider
+        if providerType == .mediaPipe {
+            if mediaPipeProvider == nil {
+                mediaPipeProvider = MediaPipePoseProvider()
+            }
+            provider = mediaPipeProvider!
+        } else {
+            provider = appleVisionProvider
+        }
+        addDebug("Selected provider: \(provider.providerType.rawValue)")
+        updateCameraStartupPhase(.configuringSession, log: "Configuring capture session")
+
+        // Wire callbacks before capture starts so the first frames aren’t dropped.
+        cameraManager.onPoseResult = { [weak self] result in
+            Task { @MainActor [weak self] in
+                self?.handlePoseSample(result)
+            }
+        }
+
+        cameraManager.onFrameProcessed = { [weak self] in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                if self.startupAttemptID == attemptID, self.cameraStartupPhase == .configuringSession {
+                    self.cancelStartupWatchdog()
+                    self.updateCameraStartupPhase(.running, log: "First frame processed — camera running")
+                }
+                self.processedFrameCount += 1
+                self.updateFPS()
+            }
+        }
+        cameraManager.onStartupEvent = { [weak self] message in
+            Task { @MainActor [weak self] in
+                self?.addDebug(message)
+            }
+        }
+        startStartupWatchdog(for: attemptID)
+
+        cameraManager.configureAndStart(provider: provider) { [weak self] error in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                guard self.startupAttemptID == attemptID else { return }
+                if let error {
+                    self.cancelStartupWatchdog()
+                    self.updateCameraStartupPhase(.failed, log: "Camera setup failed: \(error.localizedDescription)")
+                    self.cameraManager.clearOutputCallbacks()
+                    self.cameraErrorMessage = error.localizedDescription
+                } else {
+                    self.addDebug("Capture session configured — waiting for first frame")
+                }
+            }
+        }
+    }
+
+    private func startStartupWatchdog(for attemptID: UUID) {
+        cancelStartupWatchdog()
+        startupWatchdogTask = Task { [weak self] in
+            try? await Task.sleep(for: .seconds(8))
+            await MainActor.run {
+                guard let self else { return }
+                guard self.startupAttemptID == attemptID, self.cameraStartupPhase == .configuringSession else { return }
+                self.cameraManager.clearOutputCallbacks()
+                self.cameraErrorMessage = "The camera did not start in time. This usually means the capture session stalled during startup."
+                self.updateCameraStartupPhase(.failed, log: "Camera startup timed out after 8 seconds")
+            }
+        }
+    }
+
+    private func cancelStartupWatchdog() {
+        startupWatchdogTask?.cancel()
+        startupWatchdogTask = nil
+    }
+
+    nonisolated private static func describeAuthorizationStatus(_ status: AVAuthorizationStatus) -> String {
+        switch status {
+        case .authorized:
+            return "authorized"
+        case .denied:
+            return "denied"
+        case .restricted:
+            return "restricted"
+        case .notDetermined:
+            return "notDetermined"
+        @unknown default:
+            return "unknown"
+        }
+    }
+
+    nonisolated private static func resolveCameraPermissionBlocking(timeoutSeconds: Double) -> CameraPermissionOutcome {
+        let status = AVCaptureDevice.authorizationStatus(for: .video)
+        switch status {
+        case .authorized:
+            return .alreadyAuthorized
+        case .denied, .restricted:
+            return .denied
+        case .notDetermined:
+            requestCameraAccessIfNeeded()
+            return pollCameraPermissionBlocking(timeoutSeconds: timeoutSeconds)
+        @unknown default:
+            requestCameraAccessIfNeeded()
+            return pollCameraPermissionBlocking(timeoutSeconds: timeoutSeconds)
+        }
+    }
+
+    nonisolated private static func requestCameraAccessIfNeeded() {
+        AVCaptureDevice.requestAccess(for: .video) { _ in
+            // Intentionally ignored. On some device/OS combinations the completion path appears unreliable,
+            // so startup polls authorization status directly instead of trusting this callback to resume.
+        }
+    }
+
+    nonisolated private static func pollCameraPermissionBlocking(timeoutSeconds: Double) -> CameraPermissionOutcome {
+        let deadline = Date().addingTimeInterval(timeoutSeconds)
+        while Date() < deadline {
+            let status = AVCaptureDevice.authorizationStatus(for: .video)
+            switch status {
+            case .authorized:
+                return .grantedAfterPrompt
+            case .denied, .restricted:
+                return .denied
+            case .notDetermined:
+                break
+            @unknown default:
+                break
+            }
+            Thread.sleep(forTimeInterval: 0.2)
+        }
+        return .timedOut
+    }
 }
 
 struct Phase0TestView: View {
@@ -391,6 +587,11 @@ struct Phase0TestView: View {
         .fullScreenCover(isPresented: $showFaceOrientationTest) {
             FaceOrientationTestView()
         }
+        .overlay(alignment: .top) {
+            startupBanner
+                .padding(.top, 8)
+                .padding(.horizontal, 12)
+        }
         .preferredColorScheme(.dark)
         .statusBarHidden(viewModel.isRunning)
         .workoutLandscapeWhenActive(viewModel.isRunning)
@@ -407,68 +608,71 @@ struct Phase0TestView: View {
     // MARK: - Start
 
     private var startView: some View {
-        VStack(spacing: 24) {
-            Spacer()
+        ScrollView {
+            VStack(spacing: 24) {
+                Spacer(minLength: 60)
 
-            Image(systemName: "figure.strengthtraining.traditional")
-                .font(.system(size: 64))
-                .foregroundStyle(Color(red: 1.0, green: 0.42, blue: 0.42))
+                Image(systemName: "figure.strengthtraining.traditional")
+                    .font(.system(size: 64))
+                    .foregroundStyle(Color(red: 1.0, green: 0.42, blue: 0.42))
 
-            Text("PushupCoach — Phase 0 Test")
-                .font(.title.bold())
-                .foregroundStyle(.white)
+                Text("PushupCoach — Phase 0 Test")
+                    .font(.title.bold())
+                    .foregroundStyle(.white)
 
-            Text("This test validates camera capture, pose detection, rep counting, and form scoring.")
-                .font(.body)
-                .foregroundStyle(.gray)
-                .multilineTextAlignment(.center)
+                Text("This test validates camera capture, pose detection, rep counting, and form scoring.")
+                    .font(.body)
+                    .foregroundStyle(.gray)
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 40)
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Label("Place phone flat on the floor, screen facing up", systemImage: "iphone")
+                    Label("Portrait orientation (tall, not sideways)", systemImage: "arrow.up")
+                    Label("Get into pushup position above the phone", systemImage: "figure.strengthtraining.traditional")
+                    Label("Good lighting, ~arm's length away", systemImage: "light.max")
+                }
+                .font(.callout)
+                .foregroundStyle(.white.opacity(0.85))
+
+                Button {
+                    showFaceOrientationTest = true
+                } label: {
+                    Text("Face orientation test (MediaPipe)")
+                        .font(.headline)
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 16)
+                        .background(Color.white.opacity(0.18))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                }
                 .padding(.horizontal, 40)
 
-            VStack(alignment: .leading, spacing: 8) {
-                Label("Place phone flat on the floor, screen facing up", systemImage: "iphone")
-                Label("Portrait orientation (tall, not sideways)", systemImage: "arrow.up")
-                Label("Get into pushup position above the phone", systemImage: "figure.strengthtraining.traditional")
-                Label("Good lighting, ~arm's length away", systemImage: "light.max")
-            }
-            .font(.callout)
-            .foregroundStyle(.white.opacity(0.85))
-
-            Spacer()
-
-            Button {
-                showFaceOrientationTest = true
-            } label: {
-                Text("Face orientation test (MediaPipe)")
+                Button {
+                    viewModel.startCamera()
+                } label: {
+                    HStack(spacing: 10) {
+                        if viewModel.isStartingCamera {
+                            ProgressView()
+                                .tint(.black)
+                        }
+                        Text(viewModel.isStartingCamera ? viewModel.startupStatusText : "Start Camera")
+                    }
                     .font(.headline)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(.black)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 16)
-                    .background(Color.white.opacity(0.18))
+                    .background(Color(red: 1.0, green: 0.42, blue: 0.42))
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-            }
-            .padding(.horizontal, 40)
-
-            Button {
-                viewModel.startCamera()
-            } label: {
-                HStack(spacing: 10) {
-                    if viewModel.isStartingCamera {
-                        ProgressView()
-                            .tint(.black)
-                    }
-                    Text(viewModel.isStartingCamera ? "Starting…" : "Start Camera")
+                    .contentShape(Rectangle())
                 }
-                .font(.headline)
-                .foregroundStyle(.black)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Color(red: 1.0, green: 0.42, blue: 0.42))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .contentShape(Rectangle())
+                .disabled(viewModel.isStartingCamera)
+                .padding(.horizontal, 40)
+
+                startScreenDebugPanel
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 40)
             }
-            .disabled(viewModel.isStartingCamera)
-            .padding(.horizontal, 40)
-            .padding(.bottom, 40)
         }
     }
 
@@ -477,8 +681,22 @@ struct Phase0TestView: View {
     private var cameraView: some View {
         GeometryReader { geo in
             ZStack {
-                CameraPreviewView(session: viewModel.captureSession, showSafeFrameGuide: true) { layer in
+                CameraPreviewView(session: viewModel.captureSession, showSafeFrameGuide: true, onPreviewLayerReady: { layer in
                     viewModel.setPreviewLayer(layer, overlaySize: geo.size)
+                })
+
+                if viewModel.cameraStartupPhase == .configuringSession {
+                    VStack(spacing: 10) {
+                        ProgressView()
+                            .tint(.white)
+                        Text(viewModel.startupStatusText)
+                            .font(.headline)
+                            .foregroundStyle(.white)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.vertical, 18)
+                    .background(.black.opacity(0.6))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
                 }
 
                 LandmarkOverlayView(
@@ -486,6 +704,13 @@ struct Phase0TestView: View {
                     phase: viewModel.currentPhase,
                     showSkeleton: viewModel.showSkeleton
                 )
+
+                VStack {
+                    Spacer()
+                    cameraDebugOverlay
+                        .padding(.horizontal, 12)
+                        .padding(.bottom, 84)
+                }
 
                 VStack {
                     HStack(alignment: .top) {
@@ -561,6 +786,114 @@ struct Phase0TestView: View {
                 .background(.black.opacity(0.55))
             }
         }
+    }
+
+    private var startupBanner: some View {
+        HStack(spacing: 10) {
+            Circle()
+                .fill(startupBannerColor)
+                .frame(width: 10, height: 10)
+            Text(viewModel.startupBannerText)
+                .font(.headline.weight(.semibold))
+                .foregroundStyle(.white)
+            Spacer()
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .frame(maxWidth: .infinity)
+        .background(.black.opacity(0.8))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(startupBannerColor.opacity(0.9), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14))
+    }
+
+    private var startupBannerColor: Color {
+        switch viewModel.cameraStartupPhase {
+        case .idle:
+            return .gray
+        case .requestingPermission:
+            return .yellow
+        case .configuringSession:
+            return Color(red: 1.0, green: 0.42, blue: 0.42)
+        case .running:
+            return .green
+        case .failed:
+            return .red
+        }
+    }
+
+    private var startScreenDebugPanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("Debug Log")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                Spacer()
+                Button("Copy Logs") {
+                    viewModel.copyDebugLogsToPasteboard()
+                }
+                .buttonStyle(Phase0ButtonStyle())
+            }
+
+            Text("Tap Copy Logs, then paste the full output into chat.")
+                .font(.caption)
+                .foregroundStyle(.white.opacity(0.7))
+
+            ScrollView {
+                Text(viewModel.debugLogText)
+                    .font(.system(.caption, design: .monospaced))
+                    .foregroundStyle(.green.opacity(0.92))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }
+            .frame(minHeight: 180, maxHeight: 240)
+            .padding(10)
+            .background(.black.opacity(0.55))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.06))
+        .clipShape(RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var cameraDebugOverlay: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack {
+                Text("Runtime Debug")
+                    .font(.headline)
+                    .foregroundStyle(.white)
+                Spacer()
+                Button("Copy Logs") {
+                    viewModel.copyDebugLogsToPasteboard()
+                }
+                .buttonStyle(Phase0ButtonStyle())
+            }
+
+            Text("Phase: \(viewModel.startupBannerText) | Frames: \(viewModel.processedFrameCount) | FPS: \(String(format: "%.1f", viewModel.fps))")
+                .font(.system(.caption, design: .monospaced))
+                .foregroundStyle(.white.opacity(0.88))
+
+            ScrollView {
+                Text(viewModel.debugLogText)
+                    .font(.system(.caption2, design: .monospaced))
+                    .foregroundStyle(.green.opacity(0.92))
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .textSelection(.enabled)
+            }
+            .frame(maxHeight: 120)
+            .padding(8)
+            .background(.black.opacity(0.58))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+        }
+        .padding(12)
+        .background(.black.opacity(0.74))
+        .overlay(
+            RoundedRectangle(cornerRadius: 14)
+                .stroke(Color.white.opacity(0.12), lineWidth: 1)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 
     private var primaryCoachingText: String {

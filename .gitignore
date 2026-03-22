@@ -7,6 +7,9 @@ build/
 *.dSYM.zip
 *.dSYM
 
+# Secrets / local env (never commit)
+.env.local
+
 # macOS
 .DS_Store
 

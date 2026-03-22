@@ -46,6 +46,7 @@ final class CameraManager: NSObject {
 
     var onPoseResult: ((PoseResult?) -> Void)?
     var onFrameProcessed: (() -> Void)?
+    var onStartupEvent: ((String) -> Void)?
 
     /// Picks front ultra-wide when available (wider FOV at arm’s length), else wide angle.
     private static func preferredFrontCameraDevice() -> AVCaptureDevice? {
@@ -66,16 +67,33 @@ final class CameraManager: NSObject {
     }
 
     /// Stops (if needed), reconfigures I/O, then starts. All session work runs on `sessionQueue` to avoid deadlocks on restart.
+    ///
+    /// Completion is invoked **synchronously on `sessionQueue`** (not `DispatchQueue.main`). Callers should hop to
+    /// `@MainActor` themselves — using `main.async` here can fail to interleave with Swift `MainActor` tasks that
+    /// are suspended on `await`, which left the start button stuck on “Starting…”.
     func configureAndStart(provider: any PoseProvider, completion: ((Error?) -> Void)? = nil) {
         sessionQueue.async { [weak self] in
+            let completionLock = NSLock()
+            var didFinish = false
+            let finish: (Error?) -> Void = { error in
+                completionLock.lock()
+                defer { completionLock.unlock() }
+                guard !didFinish else { return }
+                didFinish = true
+                completion?(error)
+            }
+
             guard let self else {
-                DispatchQueue.main.async { completion?(nil) }
+                finish(CameraConfigurationError.noCameraDevice)
                 return
             }
 
+            self.emitStartupEvent("startup: entered session queue")
             self.poseProvider = provider
+            self.emitStartupEvent("startup: selected provider \(provider.providerType.rawValue)")
 
             if self.session.isRunning {
+                self.emitStartupEvent("startup: stopping existing session")
                 self.session.stopRunning()
                 var spins = 0
                 while self.session.isRunning, spins < 200 {
@@ -86,6 +104,7 @@ final class CameraManager: NSObject {
 
             self.session.beginConfiguration()
             self.session.sessionPreset = .medium
+            self.emitStartupEvent("startup: began configuration")
 
             for input in self.session.inputs {
                 self.session.removeInput(input)
@@ -93,20 +112,25 @@ final class CameraManager: NSObject {
             for output in self.session.outputs {
                 self.session.removeOutput(output)
             }
+            self.emitStartupEvent("startup: cleared previous inputs and outputs")
 
             guard let camera = Self.preferredFrontCameraDevice(),
                   let deviceInput = try? AVCaptureDeviceInput(device: camera) else {
                 self.session.commitConfiguration()
-                DispatchQueue.main.async { completion?(CameraConfigurationError.noCameraDevice) }
+                self.emitStartupEvent("startup failed: no front camera device")
+                finish(CameraConfigurationError.noCameraDevice)
                 return
             }
+            self.emitStartupEvent("startup: resolved camera \(camera.localizedName)")
 
             guard self.session.canAddInput(deviceInput) else {
                 self.session.commitConfiguration()
-                DispatchQueue.main.async { completion?(CameraConfigurationError.cannotAddInput) }
+                self.emitStartupEvent("startup failed: cannot add input")
+                finish(CameraConfigurationError.cannotAddInput)
                 return
             }
             self.session.addInput(deviceInput)
+            self.emitStartupEvent("startup: added input")
 
             let videoOutput = AVCaptureVideoDataOutput()
             videoOutput.alwaysDiscardsLateVideoFrames = true
@@ -117,21 +141,27 @@ final class CameraManager: NSObject {
 
             guard self.session.canAddOutput(videoOutput) else {
                 self.session.commitConfiguration()
-                DispatchQueue.main.async { completion?(CameraConfigurationError.cannotAddOutput) }
+                self.emitStartupEvent("startup failed: cannot add output")
+                finish(CameraConfigurationError.cannotAddOutput)
                 return
             }
             self.session.addOutput(videoOutput)
+            self.emitStartupEvent("startup: added video output")
 
             if let connection = videoOutput.connection(with: .video) {
                 CapturePortraitConfiguration.applyPortraitMirroredFrontCamera(to: connection)
+                self.emitStartupEvent("startup: configured portrait mirrored connection")
             }
 
             self.session.commitConfiguration()
-            self.session.startRunning()
+            self.emitStartupEvent("startup: committed configuration")
 
-            DispatchQueue.main.async {
-                completion?(nil)
-            }
+            // Unblock UI before `startRunning()` — it can block this queue for a long time.
+            self.emitStartupEvent("startup: invoking completion before startRunning()")
+            finish(nil)
+            self.emitStartupEvent("startup: calling startRunning()")
+            self.session.startRunning()
+            self.emitStartupEvent("startup: startRunning() returned (isRunning=\(self.session.isRunning))")
         }
     }
 
@@ -163,6 +193,11 @@ final class CameraManager: NSObject {
     func clearOutputCallbacks() {
         onPoseResult = nil
         onFrameProcessed = nil
+        onStartupEvent = nil
+    }
+
+    private func emitStartupEvent(_ message: String) {
+        onStartupEvent?(message)
     }
 }
 

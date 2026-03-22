@@ -43,6 +43,8 @@ final class RepCountingEngine {
     private var framesWithoutPose = 0
     private let pauseFrameThreshold = 15
     private var phaseBeforePause: Phase = .idle
+    private var readyPoseStreak = 0
+    private let framesRequiredForReadyLock = 12
 
     /// Adaptive max expected travel — calibrated from first completed reps.
     private var maxExpectedTravel: CGFloat = 0.15
@@ -125,6 +127,7 @@ final class RepCountingEngine {
         framesInCandidate = 0
         candidatePhase = nil
         framesWithoutPose = 0
+        readyPoseStreak = 0
         completedReps = []
         leftShoulderYsThisRep = []
         rightShoulderYsThisRep = []
@@ -155,6 +158,7 @@ final class RepCountingEngine {
 
     private func handlePoseLost() -> RepUpdate {
         framesWithoutPose += 1
+        readyPoseStreak = 0
         if framesWithoutPose >= pauseFrameThreshold && currentPhase != .paused && currentPhase != .idle {
             phaseBeforePause = currentPhase
             currentPhase = .paused
@@ -166,12 +170,24 @@ final class RepCountingEngine {
 
     private func handleIdle(pose: PoseResult, noseY: CGFloat, worldY: Float?) -> RepUpdate {
         if pose.isPostureReadyForRepCounting {
-            baselineNoseY = noseY
-            baselineWorldY = worldY
-            currentPhase = .ready
-            return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0,
-                             debugMessage: "Calibrated — baseline noseY: \(String(format: "%.3f", noseY))")
+            readyPoseStreak += 1
+            if readyPoseStreak >= framesRequiredForReadyLock {
+                baselineNoseY = noseY
+                baselineWorldY = worldY
+                currentPhase = .ready
+                readyPoseStreak = 0
+                return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0,
+                                 debugMessage: "Start position locked — baseline noseY: \(String(format: "%.3f", noseY))")
+            }
+            return RepUpdate(
+                phase: .idle,
+                repCount: repCount,
+                noseY: noseY,
+                depthPercent: nil,
+                debugMessage: "Hold plank to lock start position (\(readyPoseStreak)/\(framesRequiredForReadyLock))"
+            )
         }
+        readyPoseStreak = 0
         return RepUpdate(phase: .idle, repCount: repCount, noseY: noseY, depthPercent: nil,
                          debugMessage: "Waiting for landmarks, distance & plank angle")
     }
