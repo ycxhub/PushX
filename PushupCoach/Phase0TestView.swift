@@ -35,6 +35,7 @@ final class Phase0ViewModel: ObservableObject {
     /// Default pose backend for new sessions (`MediaPipe` = BlazePose task; lazy-loaded off the main thread).
     @Published var providerType: PoseProviderType = .mediaPipe
     @Published var formScores: FormScores?
+    @Published var completedSession: PushupSession?
     @Published private(set) var cameraStartupPhase: CameraStartupPhase = .idle
     @Published var debugMessages: [String] = []
     @Published var latestNoseY: CGFloat = 0
@@ -76,6 +77,7 @@ final class Phase0ViewModel: ObservableObject {
     private var lastRepCount: Int = 0
     private var startupAttemptID: UUID?
     private var startupWatchdogTask: Task<Void, Never>?
+    private var sessionStartTime: Date?
 
     var captureSession: AVCaptureSession { cameraManager.session }
     var isStartingCamera: Bool {
@@ -148,6 +150,9 @@ final class Phase0ViewModel: ObservableObject {
         cameraErrorMessage = nil
         guard !isStartingCamera, cameraStartupPhase != .running else { return }
 
+        sessionStartTime = Date()
+        completedSession = nil
+
         let attemptID = UUID()
         startupAttemptID = attemptID
         updateCameraStartupPhase(.requestingPermission, log: "Start requested")
@@ -193,9 +198,22 @@ final class Phase0ViewModel: ObservableObject {
         cameraManager.stop { [weak self] in
             Task { @MainActor in
                 guard let self else { return }
+                let scores: FormScores?
                 if self.repEngine.completedReps.count >= 2 {
-                    self.formScores = self.formEngine.computeScores(from: self.repEngine.completedReps)
+                    scores = self.formEngine.computeScores(from: self.repEngine.completedReps)
+                    self.formScores = scores
+                } else {
+                    scores = nil
                 }
+
+                let session = SessionStore.assemble(
+                    repMeasurements: self.repEngine.completedReps,
+                    formScores: scores,
+                    providerType: self.providerType,
+                    startedAt: self.sessionStartTime ?? Date(),
+                    endedAt: Date()
+                )
+                self.completedSession = session
                 self.addDebug("Camera stopped. Reps: \(self.repCount)")
             }
         }
@@ -219,6 +237,8 @@ final class Phase0ViewModel: ObservableObject {
         repAnimToken = 0
         lastRepCount = 0
         formScores = nil
+        completedSession = nil
+        sessionStartTime = nil
         debugMessages = []
         depthPercent = 0
         latestNoseY = 0
@@ -605,8 +625,11 @@ final class Phase0ViewModel: ObservableObject {
 
 struct Phase0TestView: View {
     @StateObject private var viewModel = Phase0ViewModel()
+    @Environment(\.modelContext) private var modelContext
+    @Environment(\.dismiss) private var dismiss
     @State private var showFaceOrientationTest = false
     @State private var repCountScale: CGFloat = 1.0
+    @State private var sessionSaved = false
 
     var body: some View {
         ZStack {
@@ -614,8 +637,8 @@ struct Phase0TestView: View {
 
             if viewModel.isRunning {
                 cameraView
-            } else if let scores = viewModel.formScores {
-                scoresView(scores)
+            } else if viewModel.completedSession != nil {
+                summaryView
             } else {
                 startView
             }
@@ -631,6 +654,11 @@ struct Phase0TestView: View {
         .preferredColorScheme(.dark)
         .statusBarHidden(viewModel.isRunning)
         .workoutLandscapeWhenActive(viewModel.isRunning)
+        .onChange(of: viewModel.completedSession) { _, session in
+            guard let session, !sessionSaved else { return }
+            SessionStore.save(session: session, context: modelContext)
+            sessionSaved = true
+        }
         .alert("Can’t start camera", isPresented: Binding(
             get: { viewModel.cameraErrorMessage != nil },
             set: { if !$0 { viewModel.cameraErrorMessage = nil } }
@@ -1057,9 +1085,9 @@ struct Phase0TestView: View {
         }
     }
 
-    // MARK: - Scores
+    // MARK: - Summary
 
-    private func scoresView(_ scores: FormScores) -> some View {
+    private var summaryView: some View {
         ScrollView {
             VStack(spacing: 20) {
                 Text("Workout Complete")
@@ -1070,54 +1098,59 @@ struct Phase0TestView: View {
                     .font(.system(size: 48, weight: .heavy, design: .rounded))
                     .foregroundStyle(Color(red: 1.0, green: 0.42, blue: 0.42))
 
-                VStack(spacing: 12) {
-                    scoreRow("Composite", scores.composite)
-                    scoreRow("Depth", scores.depth)
-                    scoreRow("Alignment", scores.alignment)
-                    scoreRow("Consistency", scores.consistency)
-                }
-                .padding()
-                .background(Color.white.opacity(0.1))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-
-                if !scores.improvements.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Suggestions")
-                            .font(.headline)
-                            .foregroundStyle(.white)
-
-                        ForEach(Array(scores.improvements.enumerated()), id: \.offset) { idx, text in
-                            HStack(alignment: .top) {
-                                Text("\(idx + 1).")
-                                    .foregroundStyle(Color(red: 1.0, green: 0.42, blue: 0.42))
-                                Text(text)
-                                    .foregroundStyle(.white.opacity(0.9))
-                            }
-                            .font(.callout)
-                        }
+                if let scores = viewModel.formScores {
+                    VStack(spacing: 12) {
+                        scoreRow("Composite", scores.composite)
+                        scoreRow("Depth", scores.depth)
+                        scoreRow("Alignment", scores.alignment)
+                        scoreRow("Consistency", scores.consistency)
                     }
                     .padding()
-                    .background(Color.white.opacity(0.05))
+                    .background(Color.white.opacity(0.1))
                     .clipShape(RoundedRectangle(cornerRadius: 14))
-                }
 
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Debug Log")
-                        .font(.caption.bold())
-                        .foregroundStyle(.gray)
-                    ForEach(Array(viewModel.debugMessages.enumerated()), id: \.offset) { _, msg in
-                        Text(msg)
-                            .font(.system(.caption2, design: .monospaced))
-                            .foregroundStyle(.green.opacity(0.7))
+                    if !scores.improvements.isEmpty {
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Suggestions")
+                                .font(.headline)
+                                .foregroundStyle(.white)
+
+                            ForEach(Array(scores.improvements.enumerated()), id: \.offset) { idx, text in
+                                HStack(alignment: .top) {
+                                    Text("\(idx + 1).")
+                                        .foregroundStyle(Color(red: 1.0, green: 0.42, blue: 0.42))
+                                    Text(text)
+                                        .foregroundStyle(.white.opacity(0.9))
+                                }
+                                .font(.callout)
+                            }
+                        }
+                        .padding()
+                        .background(Color.white.opacity(0.05))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
+                } else {
+                    Text("Not enough reps for scoring (need 2+)")
+                        .font(.callout)
+                        .foregroundStyle(.white.opacity(0.5))
+                        .padding()
+                        .frame(maxWidth: .infinity)
+                        .background(Color.white.opacity(0.05))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding()
 
-                Button("New Session") {
-                    viewModel.resetSession()
+                HStack(spacing: 12) {
+                    Button("New Session") {
+                        sessionSaved = false
+                        viewModel.resetSession()
+                    }
+                    .buttonStyle(Phase0ButtonStyle())
+
+                    Button("Done") {
+                        dismiss()
+                    }
+                    .buttonStyle(Phase0ButtonStyle(isPrimary: true))
                 }
-                .buttonStyle(Phase0ButtonStyle(isPrimary: true))
                 .padding(.bottom, 40)
             }
             .padding()

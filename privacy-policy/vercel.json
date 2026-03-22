@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/pushx/privacy-policy", "destination": "/index.html" }
+  ]
+}

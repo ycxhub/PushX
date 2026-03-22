@@ -16,11 +16,11 @@
 		B000000000000000000007 /* RepCountingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000007 /* RepCountingEngine.swift */; };
 		B000000000000000000008 /* FormScoringEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000008 /* FormScoringEngine.swift */; };
 		B000000000000000000009 /* LandmarkOverlayView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000009 /* LandmarkOverlayView.swift */; };
+		B00000000000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000B /* Assets.xcassets */; };
 		B00000000000000000000C /* VisionOrientation.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000D /* VisionOrientation.swift */; };
 		B00000000000000000000D /* LandmarkSmoother.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000E /* LandmarkSmoother.swift */; };
 		B00000000000000000000E /* PoseTrackingGate.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000F /* PoseTrackingGate.swift */; };
 		B00000000000000000000F /* WorkoutOrientationLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000010 /* WorkoutOrientationLock.swift */; };
-		B00000000000000000000B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A00000000000000000000B /* Assets.xcassets */; };
 		B000000000000000000011 /* MediaPipePoseProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000011 /* MediaPipePoseProvider.swift */; };
 		B000000000000000000012 /* FeedbackEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000012 /* FeedbackEngine.swift */; };
 		B000000000000000000013 /* DepthBarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000013 /* DepthBarView.swift */; };
@@ -32,6 +32,14 @@
 		B000000000000000000019 /* FaceOrientationTestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000019 /* FaceOrientationTestView.swift */; };
 		B00000000000000000001A /* PushupPoseConstants.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000001A /* PushupPoseConstants.swift */; };
 		B00000000000000000001B /* CoachingOverlayViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000001B /* CoachingOverlayViews.swift */; };
+		B00000000000000000001C /* PushupSessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000001C /* PushupSessionModel.swift */; };
+		B00000000000000000001D /* PushupRepRecordModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000001D /* PushupRepRecordModel.swift */; };
+		B00000000000000000001E /* SessionStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000001E /* SessionStore.swift */; };
+		B00000000000000000001F /* SessionExporter.swift in Sources */ = {isa = PBXBuildFile; fileRef = A00000000000000000001F /* SessionExporter.swift */; };
+		B000000000000000000020 /* FormTrendChart.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000020 /* FormTrendChart.swift */; };
+		B000000000000000000021 /* SessionDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000021 /* SessionDetailView.swift */; };
+		B000000000000000000022 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000022 /* HistoryView.swift */; };
+		B000000000000000000023 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000023 /* HomeView.swift */; };
 		BPKG0000000000000000001 /* SwiftTasksVision in Frameworks */ = {isa = PBXBuildFile; productRef = PPKG0000000000000000001 /* SwiftTasksVision */; };
 /* End PBXBuildFile section */
 
@@ -63,6 +71,14 @@
 		A000000000000000000019 /* FaceOrientationTestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FaceOrientationTestView.swift; sourceTree = "<group>"; };
 		A00000000000000000001A /* PushupPoseConstants.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushupPoseConstants.swift; sourceTree = "<group>"; };
 		A00000000000000000001B /* CoachingOverlayViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachingOverlayViews.swift; sourceTree = "<group>"; };
+		A00000000000000000001C /* PushupSessionModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushupSessionModel.swift; sourceTree = "<group>"; };
+		A00000000000000000001D /* PushupRepRecordModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushupRepRecordModel.swift; sourceTree = "<group>"; };
+		A00000000000000000001E /* SessionStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionStore.swift; sourceTree = "<group>"; };
+		A00000000000000000001F /* SessionExporter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionExporter.swift; sourceTree = "<group>"; };
+		A000000000000000000020 /* FormTrendChart.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormTrendChart.swift; sourceTree = "<group>"; };
+		A000000000000000000021 /* SessionDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionDetailView.swift; sourceTree = "<group>"; };
+		A000000000000000000022 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
+		A000000000000000000023 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -110,6 +126,14 @@
 				A000000000000000000002 /* Phase0TestView.swift */,
 				A00000000000000000001A /* PushupPoseConstants.swift */,
 				A00000000000000000001B /* CoachingOverlayViews.swift */,
+				A00000000000000000001C /* PushupSessionModel.swift */,
+				A00000000000000000001D /* PushupRepRecordModel.swift */,
+				A00000000000000000001E /* SessionStore.swift */,
+				A00000000000000000001F /* SessionExporter.swift */,
+				A000000000000000000020 /* FormTrendChart.swift */,
+				A000000000000000000021 /* SessionDetailView.swift */,
+				A000000000000000000022 /* HistoryView.swift */,
+				A000000000000000000023 /* HomeView.swift */,
 				C000000000000000000004 /* Models */,
 				A00000000000000000000A /* Info.plist */,
 				A00000000000000000000B /* Assets.xcassets */,
@@ -228,6 +252,14 @@
 				B00000000000000000000D /* LandmarkSmoother.swift in Sources */,
 				B00000000000000000000E /* PoseTrackingGate.swift in Sources */,
 				B00000000000000000000F /* WorkoutOrientationLock.swift in Sources */,
+				B00000000000000000001C /* PushupSessionModel.swift in Sources */,
+				B00000000000000000001D /* PushupRepRecordModel.swift in Sources */,
+				B00000000000000000001E /* SessionStore.swift in Sources */,
+				B00000000000000000001F /* SessionExporter.swift in Sources */,
+				B000000000000000000020 /* FormTrendChart.swift in Sources */,
+				B000000000000000000021 /* SessionDetailView.swift in Sources */,
+				B000000000000000000022 /* HistoryView.swift in Sources */,
+				B000000000000000000023 /* HomeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -238,9 +270,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = PushupCoach/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PushX;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -260,9 +294,11 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = PushupCoach/Info.plist;
+				INFOPLIST_KEY_CFBundleDisplayName = PushX;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.healthcare-fitness";
 				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
 				LD_RUNPATH_SEARCH_PATHS = (
