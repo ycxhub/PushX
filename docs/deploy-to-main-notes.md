@@ -99,3 +99,23 @@ _Complexity:_ `git show 82643a2 --numstat`: 22 files, 2546 insertions + 320 dele
 3. `PushupCoach/Phase0TestView.swift` — 43 lines (39 insertions, 4 deletions)
 
 _Complexity:_ `git show 5d8fc44 --numstat`: 5 files, 250 insertions + 351 deletions → **High** (> 200 lines).
+
+## #6 — MVP B-lite: home dashboard, session history, SwiftData persistence, app icon [High]
+
+**Date & time (IST):** 22 Mar 2026, 17:12
+
+**Deployment notes**
+
+- **New features:** HomeView dashboard with today's stats, streak counter, quick-start workout; HistoryView with session list grouped by date, search, and delete; SessionDetailView with rep-by-rep breakdown, form scores, share export; FormTrendChart for composite form score trends; SessionExporter for sharing session data; SwiftData persistence layer (PushupSession + PushupRepRecord models, SessionStore); app icon (1024px); privacy policy page (HTML + Vercel)
+- **Feature enhancements:** PushupCoachApp root switched to HomeView with SwiftData ModelContainer (error recovery fallback); Phase0TestView saves session to SwiftData on complete, "Done" button dismisses to home, summary handles < 2 reps gracefully; app display name set to "PushX"
+- **Tests:** RepMappingTests validates RepMeasurement → PushupRepRecord mapping
+- **Docs:** App Store Connect setup guide, App Store description copy, archive & upload guide, MVP design doc, MVP engineering spec, MVP task list
+- **GitHub:** merged `feature/mvp-blite` → `main` (`a93c243`). **Vercel:** privacy-policy page deployable via `privacy-policy/vercel.json`
+
+**3 files with largest changes (by lines changed)**
+
+1. `docs/designs/pushx-mvp-eng-spec.md` — 472 lines (472 insertions)
+2. `PushupCoach/SessionDetailView.swift` — 230 lines (230 insertions)
+3. `PushupCoach/HomeView.swift` — 175 lines (175 insertions)
+
+_Complexity:_ `git show a93c243 --numstat`: 26 files, 2398 insertions + 59 deletions → **High** (> 200 lines).
