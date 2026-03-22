@@ -119,3 +119,22 @@ _Complexity:_ `git show 5d8fc44 --numstat`: 5 files, 250 insertions + 351 deleti
 3. `PushupCoach/HomeView.swift` — 175 lines (175 insertions)
 
 _Complexity:_ `git show a93c243 --numstat`: 26 files, 2398 insertions + 59 deletions → **High** (> 200 lines).
+
+## #7 — Neon Kinetic design system, UI refresh, app icon catalog fix [High]
+
+**Date & time (IST):** 22 Mar 2026, 21:53
+
+**Deployment notes**
+
+- **New features:** `DesignSystem.swift` — Neon Kinetic palette (`nk*` colors), kinetic gradients, typography scale, reusable modifiers; `docs/stitch_rest_timer/` Stitch exports (home, setup, active set, summary) + `neon_kinetic/DESIGN.md`
+- **Feature enhancements:** HomeView, HistoryView, SessionDetailView restyled; Phase0TestView workout UI aligned with design system; FormTrendChart, DepthBarView, CoachingOverlayViews use design tokens
+- **Bug fixes / chore:** App icon assets moved from `AppIcon 1.appiconset` → `AppIcon.appiconset` (matches Xcode `AppIcon` name); `DesignSystem.swift` added to Xcode target; `privacy-policy/.gitignore` ignores `.vercel`
+- **GitHub:** pushed `main` (`896d6b8`). **Vercel:** native iOS + optional privacy-policy deploy unchanged
+
+**3 files with largest changes (by lines changed)**
+
+1. `PushupCoach/Phase0TestView.swift` — 838 lines (490 insertions, 348 deletions)
+2. `PushupCoach/HomeView.swift` — 483 lines (362 insertions, 121 deletions)
+3. `PushupCoach/SessionDetailView.swift` — 414 lines (285 insertions, 129 deletions)
+
+_Complexity:_ `git show 896d6b8 --numstat`: 23 files, 2545 insertions + 707 deletions → **High** (> 200 lines).
