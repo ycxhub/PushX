@@ -171,63 +171,51 @@ struct PoseResult: Sendable {
         return span >= PushupPoseConstants.shoulderSpanGateMin && span <= PushupPoseConstants.shoulderSpanGateMax
     }
 
-    /// Trunk horizontal enough when the body is side-on in the image (weak for pure face-on plank).
-    var isTrunkAngleReadyForPushup: Bool {
-        guard let angle = trunkAngleFromVertical else { return false }
-        return angle >= PushupPoseConstants.minTrunkAngleForPushup
-    }
+    /// Phone-against-wall plank detection.
+    ///
+    /// Camera is at floor level looking horizontally at the user. In plank/pushup position the head
+    /// hangs between or below the shoulders so `nose.y >= shoulderMidY` (y-down). When standing the
+    /// nose is well above the shoulders and hips are far below — both rejected here.
+    var isInPlankFromFrontCamera: Bool {
+        guard let nose = landmark(.nose), nose.confidence >= 0.4,
+              let ls = landmark(.leftShoulder), let rs = landmark(.rightShoulder),
+              ls.confidence >= 0.3, rs.confidence >= 0.3 else { return false }
 
-    /// Face-on plank: elbows typically **below** shoulders in image space (y-down); optional world-space cue.
-    var isPlankLikeForFaceOnCamera: Bool {
-        if plankLikelihoodWorld { return true }
-        return plankLikelihood2D
-    }
-
-    private var plankLikelihoodWorld: Bool {
-        guard let wls = worldLandmark(.leftShoulder), let wrs = worldLandmark(.rightShoulder),
-              let wlh = worldLandmark(.leftHip), let wrh = worldLandmark(.rightHip),
-              wls.confidence > 0.25, wrs.confidence > 0.25, wlh.confidence > 0.25, wrh.confidence > 0.25 else {
-            return false
-        }
-        let shoulderY = (wls.position.y + wrs.position.y) * 0.5
-        let hipY = (wlh.position.y + wrh.position.y) * 0.5
-        // Hips “below” shoulders in world (y down) in plank facing camera.
-        return (hipY - shoulderY) > 0.035
-    }
-
-    private var plankLikelihood2D: Bool {
-        guard let ls = landmark(.leftShoulder), let rs = landmark(.rightShoulder),
-              ls.confidence > 0.22, rs.confidence > 0.22 else { return false }
         let shoulderMidY = (ls.position.y + rs.position.y) * 0.5
 
-        var elbowBelow = 0
-        var elbowChecked = 0
-        if let le = landmark(.leftElbow), le.confidence > 0.22 {
-            elbowChecked += 1
-            if le.position.y > shoulderMidY + 0.015 { elbowBelow += 1 }
-        }
-        if let re = landmark(.rightElbow), re.confidence > 0.22 {
-            elbowChecked += 1
-            if re.position.y > shoulderMidY + 0.015 { elbowBelow += 1 }
-        }
+        let noseAtOrBelowShoulders = nose.position.y >= shoulderMidY - 0.05
+        guard noseAtOrBelowShoulders else { return false }
 
-        if elbowChecked >= 1, elbowBelow >= 1 { return true }
-
-        if let nose = landmark(.nose), nose.confidence > 0.3,
-           let lh = landmark(.leftHip), let rh = landmark(.rightHip),
-           lh.confidence > 0.2, rh.confidence > 0.2 {
+        if let lh = landmark(.leftHip), let rh = landmark(.rightHip),
+           lh.confidence >= 0.25, rh.confidence >= 0.25 {
             let hipMidY = (lh.position.y + rh.position.y) * 0.5
-            if nose.position.y > shoulderMidY - 0.04, hipMidY > shoulderMidY + 0.02 {
-                return true
+            if hipMidY > shoulderMidY + 0.15 {
+                return false
             }
         }
 
-        return false
+        return true
     }
 
-    /// Ready to arm reps from idle: calibration + (side-on trunk **or** face-on plank).
+    /// Explicit standing rejection — hips far below shoulders with nose above them.
+    var isStandingPose: Bool {
+        guard let nose = landmark(.nose), nose.confidence >= 0.3,
+              let ls = landmark(.leftShoulder), let rs = landmark(.rightShoulder),
+              ls.confidence >= 0.25, rs.confidence >= 0.25,
+              let lh = landmark(.leftHip), let rh = landmark(.rightHip),
+              lh.confidence >= 0.25, rh.confidence >= 0.25 else { return false }
+
+        let shoulderMidY = (ls.position.y + rs.position.y) * 0.5
+        let hipMidY = (lh.position.y + rh.position.y) * 0.5
+
+        let hipsWellBelowShoulders = (hipMidY - shoulderMidY) > 0.15
+        let noseAboveShoulders = nose.position.y < shoulderMidY
+        return hipsWellBelowShoulders && noseAboveShoulders
+    }
+
+    /// Ready to arm reps from idle: calibration checks pass and user is in plank position.
     var isPostureReadyForRepCounting: Bool {
-        isCalibratedForPushup && (isTrunkAngleReadyForPushup || isPlankLikeForFaceOnCamera)
+        isCalibratedForPushup && isInPlankFromFrontCamera
     }
 
     /// Live shoulder imbalance for HUD (meters in world space when available, else normalized 2D).

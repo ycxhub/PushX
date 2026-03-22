@@ -4,7 +4,7 @@
 
 PushupCoach is a native iOS app that uses the phone's **front (selfie) camera** and **on-device pose estimation** to count pushup reps in real time, score form after each set, and guide users through progressive training plans.
 
-The phone is placed on the ground **in front of the user** in **landscape orientation** so they can see the screen while in pushup position. The app detects body landmarks (head, shoulders, elbows, chest) from the front-facing camera, counts reps as the user moves through down→up cycles, and after each set computes a form score with actionable improvement suggestions.
+The phone is placed **vertically against a wall or object** at floor level, in **portrait orientation** (tall, not sideways), with the front camera facing the user approximately 2–3 feet away. The user can see the screen while in pushup position. The app detects body landmarks (head, shoulders, elbows, chest) from the front-facing camera, counts reps as the user moves through down→up cycles, and after each set computes a form score with actionable improvement suggestions.
 
 ### Problem it solves
 
@@ -74,7 +74,7 @@ The phone is placed on the ground **in front of the user** in **landscape orient
 
 | # | Requirement |
 |---|-------------|
-| FR-6 | When the user taps "Start Pushups," the app shows a **Ready Screen** with a setup guide: (a) place phone on floor in front of you, screen facing you, in **landscape** orientation, (b) ensure good lighting (avoid backlighting), (c) keep your full upper body visible in the camera. |
+| FR-6 | When the user taps "Start Pushups," the app shows a **Ready Screen** with a setup guide: (a) place phone vertically against a wall or object at floor level, screen facing you, in **portrait** orientation, (b) ensure good lighting (avoid backlighting), (c) keep your full upper body visible in the camera. |
 | FR-7 | The Ready Screen includes an illustration showing the **recommended phone distance: approximately 2–3 feet** (60–90 cm) in front of the user's head, on the floor, leaning slightly against an object so the screen is angled toward the user's face. |
 | FR-8 | The app requests **camera permission** on the Ready Screen if not already granted. |
 | FR-9 | After the user taps "I'm Ready," the camera activates and the app enters **Stance Confirmation** mode. The app checks that: (a) a human body is detected, (b) key landmarks (head, shoulders, elbows) are visible with sufficient confidence, (c) the user appears to be in a pushup-ready position (arms extended, body roughly horizontal). |
@@ -226,9 +226,9 @@ The phone is placed on the ground **in front of the user** in **landscape orient
 
 1. **Home Dashboard**: streak flame (top), weekly dots, today's reps, quick-start button, tips carousel, AI promo card.
 2. **Training Plans**: three plan cards, each expandable to show weekly schedule. Active plan shows a progress bar with auto-advance indicators.
-3. **Workout — Ready Screen**: setup illustration showing phone placement (landscape, 2–3 feet away, leaning against an object), lighting tips, body visibility checklist, camera permission button, "I'm Ready" CTA.
+3. **Workout — Ready Screen**: setup illustration showing phone placement (portrait, vertical against a wall, 2–3 feet away), lighting tips, body visibility checklist, camera permission button, "I'm Ready" CTA.
 4. **Workout — Stance Confirmation**: camera preview with overlay showing green/red checkmarks for each calibration check (body detected, landmarks visible, distance OK, position OK). Real-time coaching prompts guide the user. 3-second countdown when all checks pass.
-5. **Workout — Active Tracking** (landscape): full-screen camera preview, skeleton/landmark overlay, large rep counter (centered, ≥ 72pt, readable from floor), live form hint text, "End Set" button. Pause overlay if user leaves frame.
+5. **Workout — Active Tracking** (portrait): full-screen camera preview, skeleton/landmark overlay, large rep counter (centered, ≥ 72pt, readable while in plank position with headup), live form hint text, "End Set" button. Pause overlay if user leaves frame.
 6. **Workout — Rest Period**: countdown timer (large), set summary (reps completed), "Skip Rest" / "Next Set" buttons.
 7. **Workout — Summary**: total reps, sets, duration, form score (0–100) with 3 sub-scores (depth, alignment, consistency), ranked improvement list, "Done" button.
 8. **AI Coach**: chat bubbles, suggested prompt chips, premium lock overlay for free users.
@@ -238,7 +238,7 @@ The phone is placed on the ground **in front of the user** in **landscape orient
 
 ### Orientation strategy
 
-- **Workout screens** (Ready, Stance Confirmation, Active Tracking, Rest): **landscape only**. Landscape gives a wider field of view that better captures the user's shoulder span and arm positions. The phone is on the floor in front of the user, so landscape is the natural orientation.
+- **Workout screens** (Ready, Stance Confirmation, Active Tracking, Rest): **portrait only**. The phone is placed vertically against a wall at floor level in front of the user, so portrait is the natural orientation.
 - **All other screens** (Home, Plans, AI Coach, Profile, Form Guide, Paywall): **portrait** (standard iOS UX).
 - The app handles the orientation transition smoothly when entering/exiting a workout.
 
@@ -305,7 +305,7 @@ Based on front selfie camera characteristics (iPhone 12+ wide-angle selfie lens)
 - **Recommended distance: 2–3 feet (60–90 cm)** from phone to user's head.
 - At this distance, the selfie camera captures head + shoulders + upper arms comfortably.
 - The calibration screen validates distance by checking that the **shoulder span occupies 30–60% of the frame width**. Too large = too close. Too small = too far.
-- The Ready Screen shows a clear illustration of the recommended setup: phone on the floor, landscape orientation, leaning against a water bottle or shoe, ~2–3 feet in front of the user's head.
+- The Ready Screen shows a clear illustration of the recommended setup: phone placed vertically against a wall or object at floor level (tall, not sideways), portrait orientation, front camera facing the user, ~2–3 feet in front of the user's head.
 
 ### 7.3 Rep Counting from the Front Angle
 
@@ -426,7 +426,7 @@ ai_conversations (id, user_id, messages_json, created_at)
 
 | # | Test | Pass criteria |
 |---|------|--------------|
-| P0-1 | **Camera capture works** via front selfie camera in landscape | Live camera preview renders on screen |
+| P0-1 | **Camera capture works** via front selfie camera in portrait | Live camera preview renders on screen |
 | P0-2 | **MediaPipe BlazePose runs on-device** and returns landmarks | ≥ 10 fps inference, landmarks displayed as dots on the camera preview |
 | P0-3 | **Apple Vision runs on-device** and returns landmarks | Same as above but with Apple Vision, to validate the fallback path |
 | P0-4 | **PoseProvider protocol switching** works | Can toggle between MediaPipe and Apple Vision at runtime with one config change |
@@ -440,7 +440,7 @@ ai_conversations (id, user_id, messages_json, created_at)
 ### 8.0.2 What Phase 0 looks like
 
 A minimal app with:
-- Full-screen camera preview (landscape, front camera).
+- Full-screen camera preview (portrait, front camera).
 - Landmark dots overlaid on the preview (colored by confidence level).
 - A toggle switch to flip between MediaPipe and Apple Vision.
 - A rep counter displayed on screen.
@@ -496,11 +496,11 @@ Phase 0 is complete when all P0-1 through P0-10 pass. Only then does development
 | OQ-4 | Plan advancement | **Automatic**. Plans auto-advance when daily workout is completed. |
 | OQ-5 | Exercises in plans | **Pure pushups only**. No warm-ups or other exercises. |
 | OQ-6 | Calorie estimation | **Removed**. Too imprecise without biometrics. Not in v1. |
-| OQ-7 | Orientation | **Landscape for workout screens** (wider FOV for shoulder/arm detection). **Portrait for all other screens** (standard iOS UX). |
+| OQ-7 | Orientation | **Portrait for workout screens** (wider FOV for shoulder/arm detection). **Portrait for all other screens** (standard iOS UX). |
 | OQ-8 | User leaves frame | **Pause counting + show warning**. Resume automatically when user returns and is stable for ≥ 1 second. Count is preserved. |
 
 ---
 
-*PRD version: 2.0*
-*Last updated: March 18, 2026*
+*PRD version: 2.1*
+*Last updated: March 22, 2026*
 *Author: AI-assisted, based on product requirements from the founder*

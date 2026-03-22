@@ -164,14 +164,15 @@ final class FeedbackEngine {
     // MARK: - Layer 2b: Body Position
 
     private func checkBodyPosition(_ pose: PoseResult) -> FeedbackItem? {
-        if pose.isTrunkAngleReadyForPushup || pose.isPlankLikeForFaceOnCamera {
-            return nil
+        if pose.isInPlankFromFrontCamera { return nil }
+        if pose.isStandingPose {
+            return FeedbackItem(layer: .bodyPosition,
+                message: "Get down into pushup position",
+                isRequired: true)
         }
-        return FeedbackItem(
-            layer: .bodyPosition,
-            message: "Get on your front, facing the camera",
-            isRequired: true
-        )
+        return FeedbackItem(layer: .bodyPosition,
+            message: "Face the phone and get into plank — arms extended",
+            isRequired: true)
     }
 
     // MARK: - Layer 3: Joint Visibility

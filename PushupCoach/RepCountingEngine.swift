@@ -33,18 +33,22 @@ final class RepCountingEngine {
     private var candidatePhase: Phase?
 
     // Screen-space thresholds (fraction of nose Y travel from baseline).
-    private let downThresholdFraction: CGFloat = 0.06
-    private let upThresholdFraction: CGFloat = 0.03
+    private let downThresholdFraction: CGFloat = 0.10
+    private let upThresholdFraction: CGFloat = 0.05
 
     // World-coordinate thresholds (meters).
     private let worldDownThreshold: Float = 0.04
     private let worldUpThreshold: Float = 0.02
 
+    /// Minimum nose-Y travel from baseline to count as a valid rep (rejects head-bob phantom reps).
+    private let minimumDepthGate: CGFloat = 0.08
+    private let minimumWorldDepthGate: Float = 0.05
+
     private var framesWithoutPose = 0
     private let pauseFrameThreshold = 15
     private var phaseBeforePause: Phase = .idle
     private var readyPoseStreak = 0
-    private let framesRequiredForReadyLock = 12
+    private let framesRequiredForReadyLock = 30
 
     /// Adaptive max expected travel — calibrated from first completed reps.
     private var maxExpectedTravel: CGFloat = 0.15
@@ -250,6 +254,21 @@ final class RepCountingEngine {
 
         if isComingUp {
             if confirmTransition(to: .up) {
+                let peakDepth: Bool
+                if useWorldCoords, let bw = baselineWorldY {
+                    peakDepth = (maxWorldYThisRep - bw) >= minimumWorldDepthGate
+                } else {
+                    peakDepth = (minNoseYThisRep - (baselineNoseY ?? 0)) >= minimumDepthGate
+                }
+                guard peakDepth else {
+                    resetCandidate()
+                    currentPhase = .ready
+                    baselineNoseY = noseY
+                    baselineWorldY = worldY
+                    return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0,
+                                     debugMessage: "Shallow movement rejected — not deep enough for a rep")
+                }
+
                 currentPhase = .up
                 let measurement = RepMeasurement(
                     minNoseY: minNoseYThisRep,

@@ -627,10 +627,10 @@ struct Phase0TestView: View {
                     .padding(.horizontal, 40)
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Label("Place phone flat on the floor, screen facing up", systemImage: "iphone")
+                    Label("Lean phone against a wall, screen facing you", systemImage: "iphone")
                     Label("Portrait orientation (tall, not sideways)", systemImage: "arrow.up")
-                    Label("Get into pushup position above the phone", systemImage: "figure.strengthtraining.traditional")
-                    Label("Good lighting, ~arm's length away", systemImage: "light.max")
+                    Label("Step back 2–3 feet and get into pushup position", systemImage: "figure.strengthtraining.traditional")
+                    Label("Good lighting, upper body in view", systemImage: "light.max")
                 }
                 .font(.callout)
                 .foregroundStyle(.white.opacity(0.85))

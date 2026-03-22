@@ -21,7 +21,7 @@ enum PushupPoseConstants {
     /// Softer arm hint for **checklist dots** (plank often drops elbow confidence).
     static let armHintConfidenceChecklist: Float = 0.14
 
-    /// Degrees from vertical; trunk heuristic (side-on); face-on uses `isPlankLikeForFaceOnCamera`.
+    /// Degrees from vertical; trunk heuristic (retained for analytics, not used for plank gating).
     static let minTrunkAngleForPushup: CGFloat = 40
 
     /// Landmark overlay — dots.
