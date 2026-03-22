@@ -58,3 +58,24 @@ _Complexity:_ `git show e0e4974 --numstat`: 6 files, 230 insertions → **High**
 3. `Tests/EngineTests/FormScoringEngineTests.swift` — 181 lines (181 insertions)
 
 _Complexity:_ `git show 7405c8f --numstat`: 14 files, 1322 insertions + 71 deletions → **High** (> 200 lines).
+
+## #4 — Multi-joint rep gates, ascending phase, phantom rep rejection [High]
+
+**Date & time (IST):** 22 Mar 2026, 15:13
+
+**Deployment notes**
+
+- **Bug fixes:** Reject phantom reps from forward/backward sway (delta-relative gate), whole-body translation (wrist anchor gate), and impossibly fast reps (minimum duration 0.35s); ascending timeout (5s) prevents stuck state; suppress box/body-position feedback during active exercise
+- **Feature enhancements:** New Ascending phase replaces instant Up→Ready with return-to-baseline confirmation (4 frames near baseline); phase-transition debounce increased 4→6 frames; safe frame inset widened 5%→2%; multi-joint diagnostic logging on lock, descent, ascent, rep count, and rejection
+- **New features:** 9 new unit tests covering sway rejection, wrist drift, minimum duration, ascending phase confirmation, timeout, and diagnostic log format
+- **Chore:** YCX A-Team slash commands (10), checklists (3), and engineering ethos rules
+- **Docs:** Phase 0 device test protocol v2 with latest test observations; new rep-counting test protocol
+- **GitHub:** pushed `main` (`82643a2`). **Vercel:** native iOS project; nothing to deploy on Vercel
+
+**3 files with largest changes (by lines changed)**
+
+1. `docs/phase0-device-test-protocol.md` — 482 lines (282 insertions, 200 deletions)
+2. `docs/rep-counting-test-protocol.md` — 347 lines (347 insertions)
+3. `PushupCoach/RepCountingEngine.swift` — 308 lines (249 insertions, 59 deletions)
+
+_Complexity:_ `git show 82643a2 --numstat`: 22 files, 2546 insertions + 320 deletions → **High** (> 200 lines).
