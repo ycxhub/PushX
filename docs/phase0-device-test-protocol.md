@@ -1,90 +1,177 @@
+Logs
 
-pushup-coach/docs/phase0-device-test-protocol.md
+Fixed the issues. 
 
-Yeah, here are my observations. So what tends to happen is the rep counter starts even before I took a push-up position. 
-You can see in the first part of the video where I am still standing. I am not in a plank position, 
-but the reps have started counting. And the prompt I see on the screen is move whole body into the box, shift right. 
-It comes in even without me taking the plank position. The concern here is that it should ideally be locking the position. 
-The start position should be locked and only then rep counting should start. Right, that doesn't happen. 
-Now, I see that the tracker is on. I can see the red dots. I can see it's tracking my hand, my face, you know, my shoulder, 
-my chest, but it's not in green, right? I am doing the push-ups. As you can see, I can do the push-ups, but it's still in red. 
-It's not tracking. However, if I kneel on my knees and I just show my hands, it moves to green. 
-It moves to green if I stand vertically, right? But if I move to the plank position, it's in red. 
-We need to establish why that's happening. And yeah, again, if you can see the reps getting counted, even without me doing reps. 
-So yeah, the reps that are counted are only when I'm not actually doing a push-up. 
-When I actually did a push-up, it's not getting counted. And I'm sharing the logs as well. 
-I'm sharing the logs as you can see, but none of the counts are accurate. 
-When I actually do the push-up, it doesn't count. But when I stand and move, it counts. 
-And the prompts show up without, uh, without, uh, prompts that show up are not useful. 
-They're not related to the user's actions. 
+Here are the logs
 
-Ideally, the push-up position should be locked first and then once it's locked, the blue, sorry, 
-the dots and the lines should turn green and it should start tracking as the shoulder moves down, chest moves down.
-
-Here are the logs from the app.
-
-[127.4] Start requested
-[127.4] Camera authorization status: notDetermined
-[131.9] Camera permission granted
-[131.9] Selected provider: MediaPipe
-[131.9] Configuring capture session
-[131.9] startup: entered session queue
-[131.9] startup: selected provider MediaPipe
-[131.9] startup: began configuration
-[131.9] startup: cleared previous inputs and outputs
-[131.9] startup: resolved camera Front Camera
-[131.9] startup: added input
-[131.9] startup: added video output
-[131.9] startup: configured portrait mirrored connection
-[131.9] startup: committed configuration
-[131.9] startup: invoking completion before startRunning()
-[131.9] Capture session configured — waiting for first frame
-[131.9] startup: calling startRunning()
-[132.2] startup: startRunning() returned (isRunning=true)
-[132.7] First frame processed — camera running
-[133.3] Hold plank to lock start position (1/12)
-[133.3] Hold plank to lock start position (2/12)
-[133.4] Hold plank to lock start position (3/12)
-[133.4] Hold plank to lock start position (4/12)
-[133.4] Hold plank to lock start position (5/12)
-[133.5] Hold plank to lock start position (6/12)
-[133.5] Hold plank to lock start position (7/12)
-[133.6] Hold plank to lock start position (8/12)
-[133.6] Hold plank to lock start position (9/12)
-[133.6] Hold plank to lock start position (10/12)
-[133.7] Hold plank to lock start position (11/12)
-[133.7] Start position locked — baseline noseY: 0.621
-[161.3] Entering DOWN phase
-[161.5] REP #1 counted! Duration: 0.20s
-[170.1] Entering DOWN phase
-[183.9] REP #2 counted! Duration: 13.89s
-[211.4] Entering DOWN phase
-[253.4] REP #3 counted! Duration: 42.04s
-[256.2] Entering DOWN phase
-[257.1] REP #4 counted! Duration: 0.88s
-[263.1] Entering DOWN phase
-[274.1] REP #5 counted! Duration: 11.00s
-[278.2] Entering DOWN phase
-[282.3] REP #6 counted! Duration: 4.10s
-[285.0] Entering DOWN phase
-[289.6] REP #7 counted! Duration: 4.54s
-[291.8] Entering DOWN phase
-
-And also, share your observations from the video that are absolutely critical for product to improve significantly. 
+[812.5] Hold plank to lock start position (26/30)
+[812.5] Hold plank to lock start position (27/30)
+[812.6] Hold plank to lock start position (28/30)
+[812.6] Hold plank to lock start position (29/30)
+[812.6] Start position locked — baseline noseY: 0.459
+[812.8] Entering DOWN phase
+[814.1] REP #1 counted! Duration: 1.24s
+[817.0] Entering DOWN phase
+[817.2] REP #2 counted! Duration: 0.20s
+[819.1] Entering DOWN phase
+[820.0] REP #3 counted! Duration: 0.96s
+[821.3] Entering DOWN phase
+[823.3] REP #4 counted! Duration: 1.93s
+[824.8] Entering DOWN phase
+[825.7] REP #5 counted! Duration: 0.84s
+[827.0] Entering DOWN phase
+[827.7] REP #6 counted! Duration: 0.72s
+[829.4] Entering DOWN phase
+[829.9] REP #7 counted! Duration: 0.52s
+[831.2] Entering DOWN phase
+[832.0] REP #8 counted! Duration: 0.76s
+[833.5] Entering DOWN phase
+[834.2] REP #9 counted! Duration: 0.68s
+[835.6] Entering DOWN phase
+[836.3] REP #10 counted! Duration: 0.68s
+[837.9] Entering DOWN phase
+[838.5] REP #11 counted! Duration: 0.56s
+[840.0] Entering DOWN phase
+[840.6] REP #12 counted! Duration: 0.60s
+[841.9] Entering DOWN phase
+[842.6] REP #13 counted! Duration: 0.68s
+[844.0] Entering DOWN phase
+[844.8] REP #14 counted! Duration: 0.84s
+[846.1] Entering DOWN phase
+[848.8] REP #15 counted! Duration: 2.69s
+[850.3] Entering DOWN phase
+[851.3] REP #16 counted! Duration: 1.00s
+[851.9] Entering DOWN phase
+[853.0] REP #17 counted! Duration: 1.08s
+[853.7] Entering DOWN phase
+[856.2] REP #18 counted! Duration: 2.53s
+[856.6] Entering DOWN phase
+[857.0] REP #19 counted! Duration: 0.48s
+[858.8] Entering DOWN phase
+[859.4] REP #20 counted! Duration: 0.60s
+[860.9] Entering DOWN phase
+[861.5] REP #21 counted! Duration: 0.68s
+[868.7] Debug logs copied to clipboard
+[870.2] Debug logs copied to clipboard
+[871.0] Debug logs copied to clipboard
 
 
+My Observations
+
+A. Rep counter logic is unreliable
+
+This is the main problem now.
+
+Expected behavior
+Rep counting should begin only after start position is locked
+Rep counting should happen only for a valid push-up motion
+Non-push-up movements should be ignored
+Actual behavior
+Real push-ups are often counted correctly
+But non-push-up movements are also being counted:
+moving forward
+moving backward
+shaking shoulders slightly
+Your conclusion
+The tracking layer is mostly good
+The counter/state machine is the weak point
+
+B. False-positive counting examples
+
+You identified specific likely false counts in the logs:
+
+Invalid reps
+Rep 1: invalid
+Rep 3: invalid
+Rep 15: invalid
+Rep 16: invalid
+Rep 17: invalid
+Valid reps
+Rep 18: good
+Rep 19: good
+Rep 20: good
+Most of the remaining reps seem good
+Interpretation
+Counting is partially accurate
+But it is still too easy to trigger with incidental movement
+This means the threshold/state logic is still too permissive
+
+C. State / gating issues
+Locking behavior
+You expect counting to start only after push-up position is locked
+That gating is still not strict enough in practice
+Finishing-state detection issue
+After going down and coming back up, the app is not consistently detecting the finishing/top state
+This likely contributes to:
+false counts
+missed rep boundaries
+prompts showing up at the wrong time
+Likely system issue
+The app can detect the body and joints
+But it is not reliably distinguishing:
+valid rep motion
+incidental body movement
+top/finish state after a rep
+
+D. Prompt / UX feedback issues
+Prompts that are unclear
+“Move whole body into the box, shift right”
+unclear because the user does not clearly perceive a meaningful box
+the instruction references a UI concept that is not obvious
+Prompts that are mostly fine
+“Get down into push-up position”
+“Keep your hips level, don’t let them sag”
+Prompt timing problem
+
+After the user is already locked and doing push-ups, the app still sometimes says:
+
+“Get down into push-up position”
+“Keep your hips level, don’t let them sag”
+Why this is a problem
+Once locked, “get down into push-up position” should not keep reappearing unless tracking truly dropped or the user fully left the valid posture
+It suggests the app is not fully confident about the user’s current state, even during valid exercise motion
+
+
+E. Framing / box-size feedback
+Observation
+The app may not be using the camera frame effectively enough
+The current box feels too small
+Suggested improvement
+The active usable box should be much larger
+Ideally it should use ~90% of the portrait camera viewport
+A larger working region may help reduce unnecessary prompts and tracking friction
+Product implication
+The current ROI / framing region may be too restrictive
+Users may be technically visible and tracked, but still treated as outside the ideal exercise zone
+
+F. Root-cause hypotheses
+Rep counting logic problem
+
+Most likely issue:
+
+rep engine is over-triggering on small body motion
+forward/backward motion and shoulder shake are being mistaken for rep transitions
+
+Finish/top-state detection problem
+the app may not be reliably confirming a full return to top position
+this can make counting boundaries messy
+
+Prompt-state mismatch
+prompting logic may still be tied to intermediate confidence drops
+so even after lock, it sometimes behaves as if the user is not properly in position
+
+Framing box too restrictive
+ROI may be too tight relative to actual push-up motion
 
 
 
+# Phase 0 — On-Device Manual Test Protocol (v2)
 
-
-
-# Phase 0 — On-Device Manual Test Protocol
-
-**Date:** _______________  
-**Device:** _______________  
-**iOS version:** _______________  
-**Tester:** _______________  
+**Date:** _______________
+**Device:** _______________
+**iOS version:** _______________
+**Tester:** _______________
+**Build:** post-geometry-fix (`7405c8f`)
 
 ---
 
@@ -92,9 +179,20 @@ And also, share your observations from the video that are absolutely critical fo
 
 1. Build and install PushupCoach on your iPhone (iPhone 12 or newer recommended).
 2. Find a well-lit room with a flat floor. Avoid backlighting (don't face a window).
-3. Place the phone flat on the floor, screen facing up.
-4. You'll be in pushup position above the phone, looking down at it.
+3. **Place the phone vertically against a wall or object at floor level**, portrait orientation (tall, not sideways), screen facing you.
+4. Stand 2–3 feet in front of the phone. You should be able to see the screen from pushup position.
 5. Have a second device or printed copy of this checklist nearby.
+
+```
+    Wall
+  ┌───────┐
+  │ Phone │    2-3 ft     You (standing, then plank)
+  │  ↕    │  ←────────→       🧍 → 🏋️
+  │ Front │
+  │Camera │
+  └───────┘
+   Floor
+```
 
 ---
 
@@ -104,19 +202,20 @@ And also, share your observations from the video that are absolutely critical fo
 
 | Step | Action |
 |------|--------|
-| 1.1 | Launch the app. Confirm you see the Phase 0 start screen. | Pass
-| 1.2 | Tap **Start Camera**. If prompted, grant camera permission. | Pass
-| 1.3 | Verify the startup banner turns **green** ("State: Camera running"). | Pass 
-| 1.4 | Verify the camera preview shows a live image from the **front** camera. |pass    
-| 1.5 | Check the FPS counter in the top-right. Note the value: ______ FPS | 25 FPS Pass
+| 1.1 | Launch the app. Confirm you see the Phase 0 start screen with instructions: "Lean phone against a wall, screen facing you." |
+| 1.2 | Tap **Start Camera**. If prompted, grant camera permission. |
+| 1.3 | Verify the startup banner turns **green** ("State: Camera running"). |
+| 1.4 | Verify the camera preview shows a live image from the **front** camera. |
+| 1.5 | Check the FPS counter in the top-right. Note the value: ______ FPS |
 
 **Pass criteria:**
 - [x] Camera preview is live and responsive
 - [x] Startup banner is green
 - [x] FPS counter shows a value > 0
+- [x] Setup instructions mention wall placement (not flat on floor)
 
-**Result:** PASS 
-**Notes:** None
+**Result:** PASS_______________
+**Notes:** Camera start works. Live preview visible, startup state green, front camera active, FPS observed at ~24.9._______________
 
 ---
 
@@ -126,8 +225,8 @@ And also, share your observations from the video that are absolutely critical fo
 
 | Step | Action |
 |------|--------|
-| 2.1 | With camera running, confirm the provider shows **"MediaPipe"** in the top-right. | 
-| 2.2 | Position yourself in pushup stance above the phone (~arm's length). | 
+| 2.1 | With camera running, confirm the provider shows **"MediaPipe"** in the top-right. |
+| 2.2 | Stand 2–3 feet from the phone. You should see landmark dots appear on your body. |
 | 2.3 | Wait until the tracking state shows **"locked"** and landmark dots appear. |
 | 2.4 | Note the FPS while landmarks are being drawn: ______ FPS |
 | 2.5 | Count the approximate number of visible dots (should be many — head, shoulders, elbows, wrists, hips, legs). |
@@ -138,8 +237,8 @@ And also, share your observations from the video that are absolutely critical fo
 - [x] Skeleton lines connect the dots
 - [x] FPS ≥ 10 while tracking
 
-**Result:** PASS
-**Notes:** _______________
+**Result:** PASS_______________
+**Notes:** MediaPipe is active, landmarks and skeleton lines render, and push-up tracking geometry appears strong. FPS is comfortably above threshold._______________
 
 ---
 
@@ -160,7 +259,7 @@ And also, share your observations from the video that are absolutely critical fo
 - [ ] Dots appear on body with Apple Vision
 - [ ] FPS ≥ 10 with Apple Vision
 
-**Result:** PASS 
+**Result:** _______________
 **Notes:** _______________
 
 ---
@@ -176,127 +275,104 @@ And also, share your observations from the video that are absolutely critical fo
 | 4.3 | After switching, tracking should resume within a few seconds. |
 
 **Pass criteria:**
-- [ ] No crash or hang during rapid switching
-- [ ] Tracking resumes after switching
-- [ ] Provider label updates correctly each time
+- [x] No crash or hang during rapid switching
+- [x] Tracking resumes after switching
+- [x] Provider label updates correctly each time
 
-**Result:** PASS  
-**Notes:** App did not crash or freeze during switching, and provider label appeared to update. 
-However, tracking was never reliably locked before switching, so successful tracking resumption could not be verified. 
-Since the test requires switching during a locked tracking state and resumption after switching, 
-this should be marked FAIL, not PASS.
+**Result:** PASS_______________
+**Notes:** _______________
 
 ---
 
-## Test 5 — Landmark Confidence at Pushup Distance (P0-5)
+## Test 5 — Standing Rejection (NEW — Critical)
 
-**Goal:** Key landmarks detected with adequate confidence at ~2–3 feet in pushup position.
+**Goal:** When standing upright in front of the phone, the app must NOT start counting reps.
 
 | Step | Action |
 |------|--------|
-| 5.1 | Get into pushup position above the phone (arms extended, ~arm's length). |
-| 5.2 | Wait for tracking to lock. Check the top-left status dots: |
-|     | — **Body**: green? ______ | 
-|     | — **Landmarks**: green? ______ | 
-|     | — **Distance**: green? ______ 
-| 5.3 | Observe the landmark dots. Dots with high confidence are green; low confidence are yellow. Note the color of: |
-|     | — Nose dot: ______ |
-|     | — Shoulder dots: ______ |
-|     | — Elbow dots: ______ |
-| 5.4 | Tap **Copy Logs** in the debug panel. Paste into a note — we'll check confidence values later. |
+| 5.1 | Tap **Reset** to clear any previous state. |
+| 5.2 | Stand upright 2–3 feet in front of the phone. Face the camera. |
+| 5.3 | Wait 10 seconds. Observe: |
+|     | — Does the coaching banner say "Get down into pushup position"? ______ |
+|     | — Does the phase stay at **Idle** (not Ready)? ______ |
+|     | — Is the rep count still **0**? ______ |
+| 5.4 | Walk slowly left and right. Wave your arms. |
+|     | — Does the rep count stay at **0**? ______ |
+|     | — Does the phase stay at **Idle**? ______ |
+| 5.5 | Sit down on the floor in front of the phone. |
+|     | — Does the rep count stay at **0**? ______ |
 
 **Pass criteria:**
-- [ ] All three status dots (Body, Landmarks, Distance) are green
-- [ ] Nose, shoulder, and elbow dots are green (not yellow), indicating ≥0.55 confidence
-- [ ] Tracking state shows "locked"
+- [x] Coaching banner tells user to get into pushup position while standing
+- [x] Phase stays Idle the entire time (never reaches Ready)
+- [x] Zero phantom reps counted while standing, walking, or sitting
+- [x] No "Start position locked" message in the debug log while standing
 
-**Result:** FAIL  
-**Notes:** In actual pushup position, tracking did not reliably lock and key landmarks did not remain green. 
-The system appeared able to detect some body parts, but confidence/validation in plank position remained very poor. 
-Landmarks turned green easily in upright  or kneeling postures and never in the real pushup stance, 
-which is the opposite of what the product needs.
+**Result:** PASS_______________
+**Notes:** _______________
 
 ---
 
-## Test 6 — Calibration Checks (P0-6)
+## Test 6 — Plank Detection & Baseline Lock (NEW — Critical)
 
-**Goal:** The app correctly distinguishes "in position" from "not in position" and "too close / too far."
+**Goal:** Getting into plank position triggers the 30-frame lock sequence and transitions to Ready.
 
-### 6A — Not in position
 | Step | Action |
 |------|--------|
-| 6A.1 | Tap **Reset** to clear state. |
-| 6A.2 | Stand upright over the phone (not in pushup position). |
-| 6A.3 | Check the coaching banner — it should show guidance like "Get on your front" or "Get arms visible." |
-| 6A.4 | The phase should stay at **Idle**, not advance to Ready. |
+| 6.1 | From standing (after Test 5), get down into pushup/plank position facing the phone. Arms extended. |
+| 6.2 | Hold plank position still. Observe the debug log — it should show "Hold plank to lock start position (X/30)." |
+|     | — Does the counter increment frame by frame? ______ |
+|     | — Does it take ~1–1.5 seconds to reach 30? ______ |
+| 6.3 | Once it reaches 30/30, confirm: |
+|     | — Debug log shows "Start position locked — baseline noseY: X.XXX" ______ |
+|     | — Phase changes to **Ready** ______ |
+|     | — Subtitle shows **"Lower to begin"** ______ |
+| 6.4 | Check the top-left status dots: |
+|     | — Body: green? ______ |
+|     | — Landmarks: green? ______ |
+|     | — Distance: green? ______ |
+| 6.5 | Note the baseline noseY value from the log: ______ |
 
-- [ ] Coaching banner shows position guidance when not in pushup stance
-- [ ] Phase stays Idle
+**Pass criteria:**
+- [x] Lock counter counts up to 30 (visible in debug log)
+- [x] Lock takes approximately 1–1.5 seconds (not instant)
+- [ ] Phase transitions from Idle → Ready after lock completes
+- [x] All three status dots are green in plank position
+- [ ] "Lower to begin" subtitle appears
 
-### 6B — Too close
-| Step | Action |
-|------|--------|
-| 6B.1 | Get very close to the phone (face ~6 inches away). |
-| 6B.2 | Check if the **Distance** dot turns red and coaching says something about moving back. |
-
-- [ ] Distance dot is red when too close
-- [ ] Coaching prompts to move back
-
-### 6C — Too far
-| Step | Action |
-|------|--------|
-| 6C.1 | Move far from the phone (~6+ feet away) while still in frame. |
-| 6C.2 | Check if the **Distance** dot turns red and coaching says something about moving closer. |
-
-- [ ] Distance dot is red when too far
-- [ ] Coaching prompts to come closer
-
-### 6D — Correct position
-| Step | Action |
-|------|--------|
-| 6D.1 | Get into proper pushup position at arm's length. |
-| 6D.2 | Hold still for a few seconds. All three dots should turn green. |
-| 6D.3 | Phase should advance from Idle → Ready (showing "Lower to begin"). |
-
-- [ ] All dots green in correct position
-- [ ] Phase reaches Ready
-
-**Result:** FAIL  
-**Notes:** The app does show coaching prompts while not in pushup stance, but it does not reliably 
-keep the system in Idle. Rep logic and readiness logic appear to activate too early. 
-Distance handling is inconsistent: some prompts appear, but the distance signal itself does not seem robust or trustworthy. 
-In correct pushup position, the system does not reliably turn all dots green or reach a trustworthy Ready state.
-
+**Result:** FAIL
+**Notes:** The locking sequence itself looks good now. This is a major improvement. I’m failing it only because Ready / “Lower to begin” were not explicitly verified in your notes or logs. If those were visible in the UI, this test would likely become PASS.
 ---
 
 ## Test 7 — Rep Counting Accuracy (P0-7)
 
-**Goal:** ≥90% accuracy vs. manual count.
+**Goal:** ≥90% accuracy vs. manual count, with no phantom reps.
 
 Run **3 sets** of pushups. For each set, count your reps mentally and compare to the app's count.
 
 ### Set A — Slow, controlled (5 reps)
 | Step | Action |
 |------|--------|
-| 7A.1 | Reset the session. Get into position. Wait for phase = Ready. |
-| 7A.2 | Do **5 slow, full-range pushups** (2–3 seconds each). |
+| 7A.1 | Reset the session. Get into plank. Wait for phase = **Ready** and "Lower to begin." |
+| 7A.2 | Do **5 slow, full-range pushups** (2–3 seconds each). Go all the way down and fully extend up. |
 | 7A.3 | Record: Your count = ______, App count = ______ |
+| 7A.4 | Check debug log for rep durations. Are they plausible (1–3 seconds)? ______ |
 
 ### Set B — Normal pace (10 reps)
 | Step | Action |
 |------|--------|
-| 7B.1 | Reset. Get into position. Wait for Ready. |
+| 7B.1 | Reset. Get into plank. Wait for Ready. |
 | 7B.2 | Do **10 pushups** at a normal pace (~1.5 seconds each). |
 | 7B.3 | Record: Your count = ______, App count = ______ |
 
 ### Set C — Fast pace (5+ reps)
 | Step | Action |
 |------|--------|
-| 7C.1 | Reset. Get into position. Wait for Ready. |
+| 7C.1 | Reset. Get into plank. Wait for Ready. |
 | 7C.2 | Do **5+ fast pushups** (~1 second each). |
 | 7C.3 | Record: Your count = ______, App count = ______ |
 
-**Accuracy calculation:**
+### Accuracy calculation
 
 | Set | Manual | App | Match? |
 |-----|--------|-----|--------|
@@ -306,14 +382,13 @@ Run **3 sets** of pushups. For each set, count your reps mentally and compare to
 | **Total** | | | **___/___** = **____%** |
 
 **Pass criteria:**
-- [ ] Overall accuracy ≥ 90% (total app correct reps / total manual reps)
-- [ ] No phantom reps counted when you are still (not exercising)
+- [ ] Overall accuracy ≥ 90% (total app reps / total manual reps)
+- [ ] No phantom reps counted when holding still in plank before first pushup
 - [ ] Each individual set accuracy ≥ 80%
+- [ ] Rep durations in debug log are plausible (0.5–5 seconds, not 0.2s or 42s)
 
-**Result:** FAIL  
-**Notes:** Rep counting is fundamentally unreliable. The app counts reps while the user is standing or adjusting, 
-but misses real pushups. Logs show clearly implausible rep durations such as 0.20s and 42.04s, 
-indicating the rep state machine is firing on noise, drift, or incorrect phase transitions rather than true pushup cycles.
+**Result:** FAIL
+**Notes:** Real push-ups appear to count fairly well now, but phantom counts still happen when the user moves forward/backward or shakes shoulders. Log durations also still contain suspicious values like 0.20s, so the rep engine is improved but not production-safe.
 
 ---
 
@@ -326,15 +401,14 @@ indicating the rep state machine is firing on noise, drift, or incorrect phase t
 | 8.1 | During one of the sets above, pay attention to when the number increments. |
 | 8.2 | Does the count update almost immediately after you reach the top of a rep? |
 | 8.3 | Subjective latency: Instant / Slight delay / Noticeable lag |
+| 8.4 | Does the rep count animation (bounce) fire on each increment? ______ |
 
 **Pass criteria:**
 - [ ] Count feels like it updates "right away" (no more than half a second)
 - [ ] Rep count animation (bounce) fires on increment
 
-**Result:** FAIL  
-**Notes:** This cannot be considered a pass because rep increments themselves are not trustworthy. 
-The bigger issue is not latency but incorrect triggering. Counts sometimes 
-occur when no real rep has happened, and real reps are missed, so real-time response cannot be meaningfully validated.
+**Result:** FAIL
+**Notes:** Latency itself may be acceptable, but not enough evidence was given to confidently pass this. Bounce animation was not confirmed.
 
 ---
 
@@ -359,10 +433,8 @@ occur when no real rep has happened, and real reps are missed, so real-time resp
 - [ ] Counting resumes from where it left off
 - [ ] Final count = pre-exit count + post-return reps
 
-**Result:** FAIL  
-**Notes:** The UI does surface a frame-loss style message, but because tracking and rep counting are already unstable, 
-pause/resume behavior cannot be trusted. 
-There is no evidence that the count is preserved and resumed correctly in a deterministic way.
+**Result:** _______________
+**Notes:** No evidence shared for this test in the latest round.Will test this when the Rep counting accuracy increases by fixing the counting of phantom pushups.
 
 ---
 
@@ -411,10 +483,8 @@ There is no evidence that the count is preserved and resumed correctly in a dete
 - [ ] Improvement suggestions are relevant (e.g., "go deeper," "keep shoulders level")
 - [ ] Scores screen renders correctly with all sub-scores visible
 
-**Result:** FAIL  
-**Notes:** Since pose validation and rep detection are not reliable in the actual pushup posture, 
-any downstream form scoring is not trustworthy. 
-Form scoring should not be considered validated until tracking, readiness, and rep counting are fixed first.
+**Result:** _______________
+**Notes:** Not tested in the latest evidence. No evidence shared for this test in the latest round.Will test this when the Rep counting accuracy increases by fixing the counting of phantom pushups.
 ---
 
 ## Summary
@@ -425,8 +495,8 @@ Form scoring should not be considered validated until tracking, readiness, and r
 | 2. MediaPipe BlazePose | P0-2 | |
 | 3. Apple Vision Fallback | P0-3 | |
 | 4. Provider Switching | P0-4 | |
-| 5. Landmark Confidence | P0-5 | |
-| 6. Calibration Checks | P0-6 | |
+| 5. Standing Rejection | NEW | |
+| 6. Plank Detection & Lock | P0-5/6 | |
 | 7. Rep Counting Accuracy | P0-7 | |
 | 8. Real-Time Latency | P0-8 | |
 | 9. Pause / Resume | P0-9 | |
@@ -434,8 +504,20 @@ Form scoring should not be considered validated until tracking, readiness, and r
 
 **Overall Phase 0 verdict:** ______ / 10 passed
 
-**Phase 0 gate:** All 10 must pass to proceed to Phase 1.  
+**Phase 0 gate:** All 10 must pass to proceed to Phase 1.
 If any fail, note the issue and we'll fix it before re-testing.
+
+---
+
+## What changed since last test round
+
+The previous test round (all tests 5–10 failed) revealed a fundamental geometry mismatch — the pose detection assumed the camera was looking up from the floor, but the phone is actually vertical against a wall looking forward. These fixes were applied:
+
+1. **Plank detection rewritten** — now uses nose-below-shoulders (y-down) instead of elbow-below-shoulders. Standing (nose above shoulders, hips far below) is explicitly rejected.
+2. **Baseline lock hardened** — requires 30 stable frames (~1.2s) instead of 12 (~0.5s). Prevents instant lock while standing.
+3. **Rep thresholds raised** — down: 0.06→0.10, up: 0.03→0.05. Minimum depth gate (0.08) rejects head-bob phantom reps.
+4. **Feedback engine updated** — shows "Get down into pushup position" when standing, "Face the phone and get into plank" for ambiguous poses.
+5. **Test 5 (Standing Rejection) is new** — explicitly validates the core fix.
 
 ---
 

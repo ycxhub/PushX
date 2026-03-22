@@ -3,7 +3,7 @@ import CoreGraphics
 /// Shared normalized-space thresholds for pose gate, calibration, feedback, and coaching UI.
 enum PushupPoseConstants {
     /// Inset from each edge of the frame for the “whole body in the box” check and safe-frame overlay.
-    static let safeFrameInset: CGFloat = 0.05
+    static let safeFrameInset: CGFloat = 0.02
 
     // MARK: Shoulder span — gate vs calibration (arm’s-length / phone on floor)
 

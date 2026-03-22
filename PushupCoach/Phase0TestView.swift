@@ -318,8 +318,9 @@ final class Phase0ViewModel: ObservableObject {
             distanceOK = smoothed.isDistanceOK
             isCalibratedForPushup = smoothed.isCalibratedForPushup
 
-            let isExercising = currentPhase == .down || currentPhase == .up || currentPhase == .ready
-            let feedback = feedbackEngine.evaluate(pose: smoothed, isExercising: isExercising && repCount > 0)
+            let isExercising = currentPhase == .down || currentPhase == .ascending || currentPhase == .ready
+            let isArmed = currentPhase == .ready || currentPhase == .down || currentPhase == .ascending
+            let feedback = feedbackEngine.evaluate(pose: smoothed, isArmed: isArmed, isExercising: isExercising && repCount > 0)
 
             if feedback.shouldHideSkeleton {
                 showSkeleton = false
@@ -406,8 +407,8 @@ final class Phase0ViewModel: ObservableObject {
                 workoutStateSubtitle = "Lower to begin"
             case .down:
                 workoutStateSubtitle = "Down"
-            case .up:
-                workoutStateSubtitle = "Up"
+            case .ascending:
+                workoutStateSubtitle = "Ascending"
             case .paused:
                 workoutStateSubtitle = "Paused"
             }

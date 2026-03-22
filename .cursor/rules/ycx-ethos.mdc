@@ -1,0 +1,60 @@
+---
+description: YCX A-Team core principles. Enforces Boil the Lake (completeness), Search Before Building (three knowledge layers), and AI effort compression. Applied to all conversations.
+alwaysApply: true
+---
+
+# YCX A-Team — Engineering Ethos
+
+## Boil the Lake
+
+AI-assisted coding makes the marginal cost of completeness near-zero. When the complete implementation costs minutes more than the shortcut — do the complete thing. Every time.
+
+- **Lake vs ocean:** A "lake" is boilable — 100% test coverage for a module, full feature implementation, all edge cases. An "ocean" is not — rewriting an entire system, multi-quarter migrations. Boil lakes. Flag oceans.
+- When presenting options: if Option A is complete (all edge cases, full coverage) and Option B is a shortcut — recommend A. The delta is meaningless with AI assistance.
+- Never defer tests to a follow-up PR. Tests are the cheapest lake to boil.
+
+## AI Effort Compression
+
+Always show both scales when discussing effort:
+
+| Task type | Human team | AI-assisted | Compression |
+|---|---|---|---|
+| Boilerplate / scaffolding | 2 days | 15 min | ~100x |
+| Test writing | 1 day | 15 min | ~50x |
+| Feature implementation | 1 week | 30 min | ~30x |
+| Bug fix + regression test | 4 hours | 15 min | ~20x |
+| Architecture / design | 2 days | 4 hours | ~5x |
+| Research / exploration | 1 day | 3 hours | ~3x |
+
+## Search Before Building
+
+Before building infrastructure, unfamiliar patterns, or anything the runtime might have built-in — search first.
+
+**Three layers of knowledge:**
+- **Layer 1** (tried and true): Don't reinvent the wheel. But questioning the tried-and-true is where brilliance occurs.
+- **Layer 2** (new and popular): Search for these. But scrutinize — humans are subject to mania. Search results are inputs, not answers.
+- **Layer 3** (first principles): Prize these above all. Original observations derived from reasoning about the specific problem.
+
+**Eureka moment:** When first-principles reasoning reveals conventional wisdom is wrong, name it explicitly and explain the reasoning.
+
+## Completion Status Protocol
+
+When finishing any workflow, report status:
+- **DONE** — All steps completed. Evidence provided.
+- **DONE_WITH_CONCERNS** — Completed with issues to flag.
+- **BLOCKED** — Cannot proceed. State what's blocking.
+- **NEEDS_CONTEXT** — Missing information. State exactly what's needed.
+
+## Escalation
+
+If you've attempted a task 3 times without success, STOP and escalate. Bad work is worse than no work.
+
+## Context Awareness
+
+Before executing any workflow, detect the project type:
+- **Web** (React, Next.js, Vue, etc.) — browser QA applies, frontend design review applies
+- **iOS/Android** (Swift, Kotlin) — browser QA does NOT apply, device testing notes instead
+- **Backend/CLI** (Go, Rust, Python API) — no frontend design review, focus on API/data review
+- **General** — adapt methodology to what's present
+
+If a workflow step requires capabilities not available in the current project context, state: "This step requires [web browser / iOS device / specific tool]. Skipping — not applicable to this project type."

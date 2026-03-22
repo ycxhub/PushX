@@ -62,15 +62,15 @@ final class RepCountingEngineTests: XCTestCase {
         armEngine(baselineNoseY: 0.48)
         XCTAssertEqual(engine.currentPhase, .ready)
 
-        // Go down: 4 frames past threshold (baseline 0.48 + 0.10 threshold → need >0.58)
-        for i in 0..<4 {
-            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, timestamp: 2.0 + Double(i) * 0.04))
+        // Descent: nose=0.62 (Δ=0.14), shoulder=0.50 (Δ=0.08), Δrel=0.06, wrists anchored
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
         }
         XCTAssertEqual(engine.currentPhase, .down)
 
-        // Come back up: 4 frames near baseline
-        for i in 0..<4 {
-            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, timestamp: 3.0 + Double(i) * 0.04))
+        // Return: 6 frames to confirm ascending + 4 frames to confirm return-to-top
+        for i in 0..<10 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: 3.0 + Double(i) * 0.04))
         }
         XCTAssertEqual(engine.repCount, 1)
         XCTAssertEqual(engine.currentPhase, .ready)
@@ -81,12 +81,12 @@ final class RepCountingEngineTests: XCTestCase {
         armEngine(baselineNoseY: 0.48)
 
         for rep in 1...5 {
-            let t = Double(rep) * 2.0
-            for i in 0..<4 {
-                _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, timestamp: t + Double(i) * 0.04))
+            let t = Double(rep) * 3.0
+            for i in 0..<6 {
+                _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: t + Double(i) * 0.04))
             }
-            for i in 0..<4 {
-                _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, timestamp: t + 1.0 + Double(i) * 0.04))
+            for i in 0..<10 {
+                _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: t + 1.0 + Double(i) * 0.04))
             }
             XCTAssertEqual(engine.repCount, rep, "After rep \(rep)")
         }
@@ -110,7 +110,7 @@ final class RepCountingEngineTests: XCTestCase {
     func testPartialDescentNoRep() {
         armEngine(baselineNoseY: 0.48)
 
-        // Go slightly down (below threshold) then come back — no rep
+        // Nose delta 0.07 < downThreshold 0.10 → DOWN never entered
         for i in 0..<6 {
             _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.55, timestamp: 2.0 + Double(i) * 0.04))
         }
@@ -123,15 +123,154 @@ final class RepCountingEngineTests: XCTestCase {
 
     func testShallowRepRejectedByDepthGate() {
         armEngine(baselineNoseY: 0.48)
-
-        // Go down just past the 0.10 threshold but not past the 0.08 depth gate
-        // noseY = 0.54: delta from baseline = 0.06 which is < 0.10 so won't even trigger down
-        // noseY = 0.59: delta = 0.11 > 0.10, enters down. Peak depth = 0.11 > 0.08, passes gate.
-        // Actually, let's test a borderline scenario where somehow we enter down but peak is shallow.
-        // With the current implementation, if we exceed downThreshold (0.10) we already exceed
-        // minimumDepthGate (0.08), so both gates are aligned. This test verifies the wiring.
-
         XCTAssertEqual(engine.repCount, 0, "No reps should be counted yet")
+    }
+
+    // MARK: - Descent Gates (Delta_rel + Wrist Anchor)
+
+    func testDeltaRelGateRejectsSway() {
+        armEngine(baselineNoseY: 0.48)
+
+        // Sway: nose and shoulders both move +0.12. Delta_rel = 0.12 - 0.12 = 0.00 < 0.02
+        for i in 0..<8 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.60, shoulderY: 0.54, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
+        }
+        XCTAssertNotEqual(engine.currentPhase, .down, "Equal nose/shoulder displacement (sway) should not enter DOWN")
+        XCTAssertEqual(engine.repCount, 0)
+    }
+
+    func testDeltaRelGateAcceptsRealPushup() {
+        armEngine(baselineNoseY: 0.48)
+
+        // Real pushup: nose Δ=0.14, shoulder Δ=0.08 → Delta_rel=0.06 > 0.02
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.currentPhase, .down, "Real pushup descent should enter DOWN")
+
+        for i in 0..<10 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: 3.0 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.repCount, 1, "Real pushup should count after return confirmed")
+    }
+
+    func testWristDriftRejectsWholeBodyTranslation() {
+        armEngine(baselineNoseY: 0.48)
+
+        // Delta_rel OK (0.06>0.02), but wrists also shift: drift=|0.52-0.42|=0.10>0.05
+        for i in 0..<8 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.52, timestamp: 2.0 + Double(i) * 0.04))
+        }
+        XCTAssertNotEqual(engine.currentPhase, .down, "Wrist drift > 0.05 should prevent DOWN entry")
+        XCTAssertEqual(engine.repCount, 0)
+    }
+
+    func testForwardSwayDoesNotTriggerRep() {
+        armEngine(baselineNoseY: 0.48)
+
+        // Larger forward sway: nose Δ=0.12, shoulder Δ=0.12 → Delta_rel=0.00 < 0.02
+        for i in 0..<8 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.60, shoulderY: 0.54, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
+        }
+        // Sway back
+        for i in 0..<8 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.48, shoulderY: 0.42, wristY: 0.42, timestamp: 3.0 + Double(i) * 0.04))
+        }
+
+        XCTAssertEqual(engine.repCount, 0, "Forward/backward sway should not count as a rep")
+    }
+
+    // MARK: - Minimum Rep Duration Gate
+
+    func testShortDurationRepRejected() {
+        armEngine(baselineNoseY: 0.48)
+
+        // Valid descent
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.currentPhase, .down)
+
+        // Return too quickly: 6 frames at 0.04s each → t=2.24..2.44, duration=0.24s < 0.35s
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: 2.24 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.repCount, 0, "Rep completed in ~0.24s should be rejected (minimum 0.35s)")
+        XCTAssertEqual(engine.currentPhase, .ready, "Engine should return to ready after rejection")
+    }
+
+    // MARK: - Ascending Phase (Return-to-Top Confirmation)
+
+    func testAscendingPhaseRequiresReturnToBaseline() {
+        armEngine(baselineNoseY: 0.48)
+
+        // Valid descent
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.currentPhase, .down)
+
+        // Partial return to 0.55 — far enough from peak (0.07>0.05) to signal return
+        // but NOT near baseline (|0.55-0.48|=0.07>0.06 tolerance)
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.55, shoulderY: 0.42, wristY: 0.42, timestamp: 3.0 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.currentPhase, .ascending, "Should enter ascending after valid return signal")
+
+        // Stay at 0.55 for more frames — still not near baseline
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.55, shoulderY: 0.42, wristY: 0.42, timestamp: 3.24 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.currentPhase, .ascending, "Should remain in ascending — not near baseline")
+        XCTAssertEqual(engine.repCount, 0, "Rep should not count until return confirmed")
+    }
+
+    func testAscendingPhaseCountsAfterConfirmedReturn() {
+        armEngine(baselineNoseY: 0.48)
+
+        // Valid descent
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.currentPhase, .down)
+
+        // Return signal → ascending (at t=3.20)
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: 3.0 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.currentPhase, .ascending)
+
+        // 3 frames near baseline — not enough yet
+        for i in 0..<3 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: 3.24 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.repCount, 0, "3 frames near baseline should not count yet")
+        XCTAssertEqual(engine.currentPhase, .ascending)
+
+        // 4th frame near baseline → count!
+        _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: 3.36))
+        XCTAssertEqual(engine.repCount, 1, "4th frame near baseline should count the rep")
+        XCTAssertEqual(engine.currentPhase, .ready)
+    }
+
+    func testAscendingTimeoutDoesNotCount() {
+        armEngine(baselineNoseY: 0.48)
+
+        // Valid descent
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
+        }
+
+        // Partial return → ascending (at t=3.20, ascendingStartTime=3.20)
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.55, shoulderY: 0.42, wristY: 0.42, timestamp: 3.0 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.currentPhase, .ascending)
+
+        // Feed a frame after 5s timeout (9.0 - 3.20 = 5.8s > 5.0s)
+        _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.55, shoulderY: 0.42, wristY: 0.42, timestamp: 9.0))
+        XCTAssertEqual(engine.currentPhase, .ready, "Should timeout and return to ready")
+        XCTAssertEqual(engine.repCount, 0, "Timeout should not count the rep")
     }
 
     // MARK: - Pause / Resume
@@ -139,19 +278,16 @@ final class RepCountingEngineTests: XCTestCase {
     func testPauseAfterPoseLostFor15Frames() {
         armEngine(baselineNoseY: 0.48)
 
-        // Start descending
-        for i in 0..<4 {
-            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, timestamp: 2.0 + Double(i) * 0.04))
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
         }
         XCTAssertEqual(engine.currentPhase, .down)
 
-        // Lose pose for 14 frames → still down
         for _ in 0..<14 {
             _ = engine.update(with: nil)
         }
         XCTAssertNotEqual(engine.currentPhase, .paused, "14 frames without pose should not pause yet")
 
-        // 15th nil frame → paused
         _ = engine.update(with: nil)
         XCTAssertEqual(engine.currentPhase, .paused)
     }
@@ -159,18 +295,18 @@ final class RepCountingEngineTests: XCTestCase {
     func testResumeFromPausePreservesPhaseAndCount() {
         armEngine(baselineNoseY: 0.48)
 
-        // Do one full rep
-        for i in 0..<4 {
-            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, timestamp: 2.0 + Double(i) * 0.04))
+        // First full rep
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
         }
-        for i in 0..<4 {
-            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, timestamp: 3.0 + Double(i) * 0.04))
+        for i in 0..<10 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: 3.0 + Double(i) * 0.04))
         }
         XCTAssertEqual(engine.repCount, 1)
 
-        // Start second rep (go down)
-        for i in 0..<4 {
-            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, timestamp: 4.0 + Double(i) * 0.04))
+        // Second rep descent
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 5.0 + Double(i) * 0.04))
         }
         XCTAssertEqual(engine.currentPhase, .down)
 
@@ -180,8 +316,8 @@ final class RepCountingEngineTests: XCTestCase {
         }
         XCTAssertEqual(engine.currentPhase, .paused)
 
-        // Resume with valid pose
-        let update = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, timestamp: 6.0))
+        // Resume
+        let update = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 7.0))
         XCTAssertEqual(update.phase, .down, "Should resume to pre-pause phase")
         XCTAssertEqual(engine.repCount, 1, "Rep count preserved through pause")
     }
@@ -207,13 +343,11 @@ final class RepCountingEngineTests: XCTestCase {
     func testRepMeasurementRecordsDuration() {
         armEngine(baselineNoseY: 0.48)
 
-        // Go down at t=2.0
-        for i in 0..<4 {
-            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, timestamp: 2.0 + Double(i) * 0.04))
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
         }
-        // Come up at t=4.0
-        for i in 0..<4 {
-            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, timestamp: 4.0 + Double(i) * 0.04))
+        for i in 0..<10 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: 4.0 + Double(i) * 0.04))
         }
 
         XCTAssertEqual(engine.completedReps.count, 1)
@@ -225,11 +359,11 @@ final class RepCountingEngineTests: XCTestCase {
 
     func testResetClearsAllState() {
         armEngine(baselineNoseY: 0.48)
-        for i in 0..<4 {
-            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, timestamp: 2.0 + Double(i) * 0.04))
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
         }
-        for i in 0..<4 {
-            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, timestamp: 3.0 + Double(i) * 0.04))
+        for i in 0..<10 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: 3.0 + Double(i) * 0.04))
         }
         XCTAssertEqual(engine.repCount, 1)
 
@@ -262,9 +396,48 @@ final class RepCountingEngineTests: XCTestCase {
         XCTAssertFalse(standing.isPostureReadyForRepCounting, "Standing should not be ready for rep counting")
     }
 
+    // MARK: - Diagnostic Logging
+
+    func testDiagnosticLogIncludesJointCoordinatesOnLock() {
+        var lastDebug: String?
+        for i in 0..<31 {
+            let p = SyntheticPose.pushupPose(noseY: 0.48, shoulderY: 0.42, timestamp: Double(i) * 0.04)
+            let update = engine.update(with: p)
+            lastDebug = update.debugMessage ?? lastDebug
+        }
+        XCTAssertEqual(engine.currentPhase, .ready)
+        XCTAssertNotNil(lastDebug)
+        XCTAssertTrue(lastDebug!.contains("LOCKED"), "Lock message should contain LOCKED prefix")
+        XCTAssertTrue(lastDebug!.contains("nose="), "Lock message should include nose coordinate")
+        XCTAssertTrue(lastDebug!.contains("shldr="), "Lock message should include shoulder coordinate")
+        XCTAssertTrue(lastDebug!.contains("wrist="), "Lock message should include wrist coordinate")
+    }
+
+    func testDiagnosticLogIncludesJointCoordinatesOnRepCounted() {
+        armEngine(baselineNoseY: 0.48)
+
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
+        }
+
+        var repDebug: String?
+        for i in 0..<10 {
+            let update = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: 3.0 + Double(i) * 0.04))
+            if let msg = update.debugMessage, msg.contains("REP #") {
+                repDebug = msg
+            }
+        }
+        XCTAssertEqual(engine.repCount, 1)
+        XCTAssertNotNil(repDebug, "Rep counted should produce a diagnostic message")
+        XCTAssertTrue(repDebug!.contains("dur="), "Rep log should include duration")
+        XCTAssertTrue(repDebug!.contains("Δnose="), "Rep log should include nose delta")
+        XCTAssertTrue(repDebug!.contains("Δshldr="), "Rep log should include shoulder delta")
+        XCTAssertTrue(repDebug!.contains("wDrift="), "Rep log should include wrist drift")
+        XCTAssertTrue(repDebug!.contains("peak:"), "Rep log should include peak values")
+    }
+
     // MARK: - Helpers
 
-    /// Feed enough stable pushup-pose frames to transition idle → ready.
     private func armEngine(baselineNoseY: CGFloat) {
         for i in 0..<31 {
             _ = engine.update(with: SyntheticPose.pushupPose(noseY: baselineNoseY, timestamp: Double(i) * 0.04))

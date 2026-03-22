@@ -6,7 +6,7 @@ final class RepCountingEngine {
         case idle = "Idle"
         case ready = "Ready"
         case down = "Down"
-        case up = "Up"
+        case ascending = "Ascending"
         case paused = "Paused"
     }
 
@@ -21,28 +21,62 @@ final class RepCountingEngine {
     private(set) var repCount: Int = 0
     private(set) var currentPhase: Phase = .idle
 
+    // MARK: - Baseline state (captured on lock, updated after each rep)
+
     private var baselineNoseY: CGFloat?
     private var baselineWorldY: Float?
-    private var minNoseYThisRep: CGFloat = 1.0
-    private var maxNoseYThisRep: CGFloat = 0.0
+    private var baselineShoulderMidY: CGFloat?
+    private var baselineWristMidY: CGFloat?
+
+    // MARK: - Per-rep tracking
+
+    private var peakNoseY: CGFloat = 0.0
+    private var peakShoulderMidY: CGFloat = 0.0
     private var minWorldYThisRep: Float = .greatestFiniteMagnitude
     private var maxWorldYThisRep: Float = -.greatestFiniteMagnitude
 
-    private let framesRequired = 4
+    // MARK: - Thresholds
+
+    private let framesRequired = 6
     private var framesInCandidate = 0
     private var candidatePhase: Phase?
 
-    // Screen-space thresholds (fraction of nose Y travel from baseline).
     private let downThresholdFraction: CGFloat = 0.10
     private let upThresholdFraction: CGFloat = 0.05
+
+    /// Nose must descend MORE than shoulders by at least this amount (rejects equal-magnitude sway).
+    private let minimumRelativeGapForDescent: CGFloat = 0.02
+
+    /// Maximum wrist drift from baseline allowed during descent (rejects whole-body translation).
+    private let maxWristDrift: CGFloat = 0.05
 
     // World-coordinate thresholds (meters).
     private let worldDownThreshold: Float = 0.04
     private let worldUpThreshold: Float = 0.02
 
-    /// Minimum nose-Y travel from baseline to count as a valid rep (rejects head-bob phantom reps).
+    /// Minimum nose-Y travel from baseline to count as a valid rep.
     private let minimumDepthGate: CGFloat = 0.08
     private let minimumWorldDepthGate: Float = 0.05
+
+    /// Minimum duration for a rep to be valid.
+    private let minimumRepDuration: TimeInterval = 0.35
+
+    // MARK: - Ascending phase (return-to-top confirmation)
+
+    /// Nose must return to within this tolerance of baseline.
+    private let returnToBaselineTolerance: CGFloat = 0.06
+    /// Shoulders must return to within this tolerance of baseline.
+    private let shoulderReturnTolerance: CGFloat = 0.04
+    /// Consecutive frames near baseline required to confirm return.
+    private let ascendingConfirmFrames = 4
+    /// Maximum time in ascending before giving up.
+    private let ascendingTimeoutSeconds: TimeInterval = 5.0
+
+    private var ascendingStartTime: TimeInterval = 0
+    private var framesNearBaseline: Int = 0
+    private var pendingMeasurement: RepMeasurement?
+
+    // MARK: - Pause / idle
 
     private var framesWithoutPose = 0
     private let pauseFrameThreshold = 15
@@ -50,7 +84,8 @@ final class RepCountingEngine {
     private var readyPoseStreak = 0
     private let framesRequiredForReadyLock = 30
 
-    /// Adaptive max expected travel — calibrated from first completed reps.
+    // MARK: - Adaptive calibration
+
     private var maxExpectedTravel: CGFloat = 0.15
     private var maxExpectedWorldTravel: Float = 0.12
     private var calibrationLocked = false
@@ -74,8 +109,9 @@ final class RepCountingEngine {
     private var rightShoulderWorldYsThisRep: [Float] = []
     private(set) var completedReps: [RepMeasurement] = []
 
-    /// Whether we have world coordinates available this session.
     private var useWorldCoords = false
+
+    // MARK: - Public API
 
     func update(with pose: PoseResult?) -> RepUpdate {
         guard let pose else {
@@ -101,18 +137,21 @@ final class RepCountingEngine {
 
         let noseY = nose.position.y
         let worldY = pose.worldLandmark(.nose)?.position.y
+        let shoulderMidY = computeShoulderMidY(from: pose)
+        let hipMidY = computeHipMidY(from: pose)
+        let wristMidY = computeWristMidY(from: pose)
 
         collectShoulderData(from: pose)
 
         switch currentPhase {
         case .idle:
-            return handleIdle(pose: pose, noseY: noseY, worldY: worldY)
+            return handleIdle(pose: pose, noseY: noseY, worldY: worldY, shoulderMidY: shoulderMidY, hipMidY: hipMidY, wristMidY: wristMidY)
         case .ready:
-            return handleReady(noseY: noseY, worldY: worldY, timestamp: pose.timestamp)
+            return handleReady(noseY: noseY, worldY: worldY, shoulderMidY: shoulderMidY, hipMidY: hipMidY, wristMidY: wristMidY, timestamp: pose.timestamp)
         case .down:
-            return handleDown(noseY: noseY, worldY: worldY, timestamp: pose.timestamp)
-        case .up:
-            return handleUp(noseY: noseY, worldY: worldY, timestamp: pose.timestamp)
+            return handleDown(noseY: noseY, worldY: worldY, shoulderMidY: shoulderMidY, hipMidY: hipMidY, wristMidY: wristMidY, timestamp: pose.timestamp)
+        case .ascending:
+            return handleAscending(noseY: noseY, worldY: worldY, shoulderMidY: shoulderMidY, hipMidY: hipMidY, wristMidY: wristMidY, timestamp: pose.timestamp)
         case .paused:
             return RepUpdate(phase: .paused, repCount: repCount, noseY: noseY,
                              depthPercent: continuousDepthPercent(pose: pose), debugMessage: nil)
@@ -124,8 +163,10 @@ final class RepCountingEngine {
         currentPhase = .idle
         baselineNoseY = nil
         baselineWorldY = nil
-        minNoseYThisRep = 1.0
-        maxNoseYThisRep = 0.0
+        baselineShoulderMidY = nil
+        baselineWristMidY = nil
+        peakNoseY = 0.0
+        peakShoulderMidY = 0.0
         minWorldYThisRep = .greatestFiniteMagnitude
         maxWorldYThisRep = -.greatestFiniteMagnitude
         framesInCandidate = 0
@@ -141,9 +182,12 @@ final class RepCountingEngine {
         maxExpectedWorldTravel = 0.12
         calibrationLocked = false
         useWorldCoords = false
+        ascendingStartTime = 0
+        framesNearBaseline = 0
+        pendingMeasurement = nil
     }
 
-    // MARK: - Continuous depth signal (computed every frame, every phase)
+    // MARK: - Continuous depth signal
 
     func continuousDepthPercent(pose: PoseResult?) -> CGFloat {
         guard let pose else { return 0 }
@@ -172,22 +216,22 @@ final class RepCountingEngine {
         return RepUpdate(phase: currentPhase, repCount: repCount, noseY: nil, depthPercent: nil, debugMessage: nil)
     }
 
-    private func handleIdle(pose: PoseResult, noseY: CGFloat, worldY: Float?) -> RepUpdate {
+    private func handleIdle(pose: PoseResult, noseY: CGFloat, worldY: Float?, shoulderMidY: CGFloat?, hipMidY: CGFloat?, wristMidY: CGFloat?) -> RepUpdate {
         if pose.isPostureReadyForRepCounting {
             readyPoseStreak += 1
             if readyPoseStreak >= framesRequiredForReadyLock {
                 baselineNoseY = noseY
                 baselineWorldY = worldY
+                baselineShoulderMidY = shoulderMidY
+                baselineWristMidY = wristMidY
                 currentPhase = .ready
                 readyPoseStreak = 0
-                return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0,
-                                 debugMessage: "Start position locked — baseline noseY: \(String(format: "%.3f", noseY))")
+
+                let msg = formatLockLog(noseY: noseY, shoulderMidY: shoulderMidY, hipMidY: hipMidY, wristMidY: wristMidY)
+                return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0, debugMessage: msg)
             }
             return RepUpdate(
-                phase: .idle,
-                repCount: repCount,
-                noseY: noseY,
-                depthPercent: nil,
+                phase: .idle, repCount: repCount, noseY: noseY, depthPercent: nil,
                 debugMessage: "Hold plank to lock start position (\(readyPoseStreak)/\(framesRequiredForReadyLock))"
             )
         }
@@ -196,7 +240,7 @@ final class RepCountingEngine {
                          debugMessage: "Waiting for landmarks, distance & plank angle")
     }
 
-    private func handleReady(noseY: CGFloat, worldY: Float?, timestamp: TimeInterval) -> RepUpdate {
+    private func handleReady(noseY: CGFloat, worldY: Float?, shoulderMidY: CGFloat?, hipMidY: CGFloat?, wristMidY: CGFloat?, timestamp: TimeInterval) -> RepUpdate {
         guard let baseline = baselineNoseY else {
             currentPhase = .idle
             return RepUpdate(phase: .idle, repCount: repCount, noseY: noseY, depthPercent: nil, debugMessage: nil)
@@ -206,14 +250,32 @@ final class RepCountingEngine {
         if useWorldCoords, let wy = worldY, let bw = baselineWorldY {
             isGoingDown = (wy - bw) > worldDownThreshold
         } else {
-            isGoingDown = (noseY - baseline) > downThresholdFraction
+            let noseDelta = noseY - baseline
+            let noseDown = noseDelta > downThresholdFraction
+
+            let relativeGap: CGFloat
+            if let smY = shoulderMidY, let bsY = baselineShoulderMidY {
+                relativeGap = noseDelta - (smY - bsY)
+            } else {
+                relativeGap = noseDelta
+            }
+            let relGatePass = relativeGap > minimumRelativeGapForDescent
+
+            let wristAnchored: Bool
+            if let wmY = wristMidY, let bwY = baselineWristMidY {
+                wristAnchored = abs(wmY - bwY) < maxWristDrift
+            } else {
+                wristAnchored = true
+            }
+
+            isGoingDown = noseDown && relGatePass && wristAnchored
         }
 
         if isGoingDown {
             if confirmTransition(to: .down) {
                 currentPhase = .down
-                minNoseYThisRep = noseY
-                maxNoseYThisRep = baseline
+                peakNoseY = noseY
+                peakShoulderMidY = shoulderMidY ?? 0
                 minWorldYThisRep = worldY ?? .greatestFiniteMagnitude
                 maxWorldYThisRep = baselineWorldY ?? -.greatestFiniteMagnitude
                 currentRepStartTime = timestamp
@@ -221,9 +283,10 @@ final class RepCountingEngine {
                 rightShoulderYsThisRep = []
                 leftShoulderWorldYsThisRep = []
                 rightShoulderWorldYsThisRep = []
+
+                let msg = formatDownLog(noseY: noseY, shoulderMidY: shoulderMidY, hipMidY: hipMidY, wristMidY: wristMidY)
                 return RepUpdate(phase: .down, repCount: repCount, noseY: noseY,
-                                 depthPercent: depthPercent(noseY, worldY: worldY),
-                                 debugMessage: "Entering DOWN phase")
+                                 depthPercent: depthPercent(noseY, worldY: worldY), debugMessage: msg)
             }
         } else {
             resetCandidate()
@@ -232,12 +295,15 @@ final class RepCountingEngine {
         return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0, debugMessage: nil)
     }
 
-    private func handleDown(noseY: CGFloat, worldY: Float?, timestamp: TimeInterval) -> RepUpdate {
+    private func handleDown(noseY: CGFloat, worldY: Float?, shoulderMidY: CGFloat?, hipMidY: CGFloat?, wristMidY: CGFloat?, timestamp: TimeInterval) -> RepUpdate {
         guard let baseline = baselineNoseY else {
             return RepUpdate(phase: currentPhase, repCount: repCount, noseY: noseY, depthPercent: nil, debugMessage: nil)
         }
 
-        minNoseYThisRep = max(minNoseYThisRep, noseY)
+        peakNoseY = max(peakNoseY, noseY)
+        if let smY = shoulderMidY {
+            peakShoulderMidY = max(peakShoulderMidY, smY)
+        }
         if let wy = worldY {
             minWorldYThisRep = min(minWorldYThisRep, wy)
             maxWorldYThisRep = max(maxWorldYThisRep, wy)
@@ -248,54 +314,56 @@ final class RepCountingEngine {
             let returnDelta = maxWorldYThisRep - wy
             isComingUp = returnDelta > worldUpThreshold && (wy - bw) < worldDownThreshold
         } else {
-            let returnDelta = minNoseYThisRep - noseY
-            isComingUp = returnDelta > upThresholdFraction && (noseY - baseline) < downThresholdFraction
+            let noseReturnDelta = peakNoseY - noseY
+            isComingUp = noseReturnDelta > upThresholdFraction
         }
 
         if isComingUp {
-            if confirmTransition(to: .up) {
+            if confirmTransition(to: .ascending) {
+                // Gate 1: minimum depth
                 let peakDepth: Bool
                 if useWorldCoords, let bw = baselineWorldY {
                     peakDepth = (maxWorldYThisRep - bw) >= minimumWorldDepthGate
                 } else {
-                    peakDepth = (minNoseYThisRep - (baselineNoseY ?? 0)) >= minimumDepthGate
+                    peakDepth = (peakNoseY - baseline) >= minimumDepthGate
                 }
                 guard peakDepth else {
+                    let msg = formatRejectLog(reason: "shallow", noseY: noseY, shoulderMidY: shoulderMidY, wristMidY: wristMidY, duration: timestamp - currentRepStartTime)
                     resetCandidate()
                     currentPhase = .ready
-                    baselineNoseY = noseY
-                    baselineWorldY = worldY
-                    return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0,
-                                     debugMessage: "Shallow movement rejected — not deep enough for a rep")
+                    updateBaselines(noseY: noseY, worldY: worldY, shoulderMidY: shoulderMidY, wristMidY: wristMidY)
+                    return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0, debugMessage: msg)
                 }
 
-                currentPhase = .up
-                let measurement = RepMeasurement(
-                    minNoseY: minNoseYThisRep,
-                    maxNoseY: maxNoseYThisRep,
+                // Gate 2: minimum duration
+                let duration = timestamp - currentRepStartTime
+                guard duration >= minimumRepDuration else {
+                    let msg = formatRejectLog(reason: "too fast \(String(format: "%.2fs", duration))", noseY: noseY, shoulderMidY: shoulderMidY, wristMidY: wristMidY, duration: duration)
+                    resetCandidate()
+                    currentPhase = .ready
+                    updateBaselines(noseY: noseY, worldY: worldY, shoulderMidY: shoulderMidY, wristMidY: wristMidY)
+                    return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0, debugMessage: msg)
+                }
+
+                // Both gates pass — store candidate and enter ascending
+                pendingMeasurement = RepMeasurement(
+                    minNoseY: peakNoseY,
+                    maxNoseY: baseline,
                     minWorldY: minWorldYThisRep == .greatestFiniteMagnitude ? nil : minWorldYThisRep,
                     maxWorldY: maxWorldYThisRep == -.greatestFiniteMagnitude ? nil : maxWorldYThisRep,
-                    durationSeconds: timestamp - currentRepStartTime,
+                    durationSeconds: duration,
                     leftShoulderYs: leftShoulderYsThisRep,
                     rightShoulderYs: rightShoulderYsThisRep,
                     leftShoulderWorldYs: leftShoulderWorldYsThisRep,
                     rightShoulderWorldYs: rightShoulderWorldYsThisRep
                 )
-                completedReps.append(measurement)
-                repCount += 1
+                currentPhase = .ascending
+                ascendingStartTime = timestamp
+                framesNearBaseline = 0
 
-                calibrateIfNeeded()
-
-                minNoseYThisRep = 1.0
-                maxNoseYThisRep = 0.0
-                minWorldYThisRep = .greatestFiniteMagnitude
-                maxWorldYThisRep = -.greatestFiniteMagnitude
-                baselineNoseY = noseY
-                baselineWorldY = worldY
-
-                currentPhase = .ready
-                return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0,
-                                 debugMessage: "REP #\(repCount) counted! Duration: \(String(format: "%.2fs", measurement.durationSeconds))")
+                let msg = formatAscendingLog(noseY: noseY, shoulderMidY: shoulderMidY, wristMidY: wristMidY, duration: duration)
+                return RepUpdate(phase: .ascending, repCount: repCount, noseY: noseY,
+                                 depthPercent: depthPercent(noseY, worldY: worldY), debugMessage: msg)
             }
         } else {
             resetCandidate()
@@ -305,9 +373,56 @@ final class RepCountingEngine {
                          depthPercent: depthPercent(noseY, worldY: worldY), debugMessage: nil)
     }
 
-    private func handleUp(noseY: CGFloat, worldY: Float?, timestamp: TimeInterval) -> RepUpdate {
-        currentPhase = .ready
-        return handleReady(noseY: noseY, worldY: worldY, timestamp: timestamp)
+    private func handleAscending(noseY: CGFloat, worldY: Float?, shoulderMidY: CGFloat?, hipMidY: CGFloat?, wristMidY: CGFloat?, timestamp: TimeInterval) -> RepUpdate {
+        guard let bNose = baselineNoseY else {
+            currentPhase = .ready
+            return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0, debugMessage: nil)
+        }
+
+        // Timeout — body never returned to top
+        if timestamp - ascendingStartTime > ascendingTimeoutSeconds {
+            let msg = "TIMEOUT (\(String(format: "%.1fs", timestamp - ascendingStartTime)) in ascending) — return to top not confirmed"
+            pendingMeasurement = nil
+            currentPhase = .ready
+            updateBaselines(noseY: noseY, worldY: worldY, shoulderMidY: shoulderMidY, wristMidY: wristMidY)
+            return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0, debugMessage: msg)
+        }
+
+        // Check return-to-baseline conditions
+        let noseNearBaseline = abs(noseY - bNose) < returnToBaselineTolerance
+        let shoulderNearBaseline: Bool
+        if let smY = shoulderMidY, let bsY = baselineShoulderMidY {
+            shoulderNearBaseline = abs(smY - bsY) < shoulderReturnTolerance
+        } else {
+            shoulderNearBaseline = true
+        }
+
+        if noseNearBaseline && shoulderNearBaseline {
+            framesNearBaseline += 1
+            if framesNearBaseline >= ascendingConfirmFrames {
+                guard let measurement = pendingMeasurement else {
+                    currentPhase = .ready
+                    return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0, debugMessage: nil)
+                }
+                completedReps.append(measurement)
+                repCount += 1
+                pendingMeasurement = nil
+
+                calibrateIfNeeded()
+
+                let msg = formatRepLog(repNumber: repCount, noseY: noseY, shoulderMidY: shoulderMidY, wristMidY: wristMidY, duration: measurement.durationSeconds)
+
+                resetRepTracking()
+                updateBaselines(noseY: noseY, worldY: worldY, shoulderMidY: shoulderMidY, wristMidY: wristMidY)
+                currentPhase = .ready
+                return RepUpdate(phase: .ready, repCount: repCount, noseY: noseY, depthPercent: 0, debugMessage: msg)
+            }
+        } else {
+            framesNearBaseline = 0
+        }
+
+        return RepUpdate(phase: .ascending, repCount: repCount, noseY: noseY,
+                         depthPercent: depthPercent(noseY, worldY: worldY), debugMessage: nil)
     }
 
     // MARK: - Adaptive calibration
@@ -335,6 +450,24 @@ final class RepCountingEngine {
 
     // MARK: - Helpers
 
+    private func computeShoulderMidY(from pose: PoseResult) -> CGFloat? {
+        guard let ls = pose.landmark(.leftShoulder), let rs = pose.landmark(.rightShoulder),
+              ls.confidence >= 0.3, rs.confidence >= 0.3 else { return nil }
+        return (ls.position.y + rs.position.y) * 0.5
+    }
+
+    private func computeHipMidY(from pose: PoseResult) -> CGFloat? {
+        guard let lh = pose.landmark(.leftHip), let rh = pose.landmark(.rightHip),
+              lh.confidence >= 0.2, rh.confidence >= 0.2 else { return nil }
+        return (lh.position.y + rh.position.y) * 0.5
+    }
+
+    private func computeWristMidY(from pose: PoseResult) -> CGFloat? {
+        guard let lw = pose.landmark(.leftWrist), let rw = pose.landmark(.rightWrist),
+              lw.confidence >= 0.2, rw.confidence >= 0.2 else { return nil }
+        return (lw.position.y + rw.position.y) * 0.5
+    }
+
     private func confirmTransition(to phase: Phase) -> Bool {
         if candidatePhase == phase {
             framesInCandidate += 1
@@ -352,6 +485,20 @@ final class RepCountingEngine {
     private func resetCandidate() {
         candidatePhase = nil
         framesInCandidate = 0
+    }
+
+    private func updateBaselines(noseY: CGFloat, worldY: Float?, shoulderMidY: CGFloat?, wristMidY: CGFloat?) {
+        baselineNoseY = noseY
+        baselineWorldY = worldY
+        baselineShoulderMidY = shoulderMidY
+        baselineWristMidY = wristMidY
+    }
+
+    private func resetRepTracking() {
+        peakNoseY = 0.0
+        peakShoulderMidY = 0.0
+        minWorldYThisRep = .greatestFiniteMagnitude
+        maxWorldYThisRep = -.greatestFiniteMagnitude
     }
 
     private func depthPercent(_ noseY: CGFloat, worldY: Float?) -> CGFloat {
@@ -377,5 +524,48 @@ final class RepCountingEngine {
         if let wr = pose.worldLandmark(.rightShoulder), wr.confidence > 0.5 {
             rightShoulderWorldYsThisRep.append(wr.position.y)
         }
+    }
+
+    // MARK: - Diagnostic log formatters
+
+    private func f(_ v: CGFloat) -> String { String(format: "%.3f", v) }
+    private func fo(_ v: CGFloat?) -> String { v.map { f($0) } ?? "n/a" }
+
+    private func wristDriftStr(_ wristMidY: CGFloat?) -> String {
+        guard let wmY = wristMidY, let bwY = baselineWristMidY else { return "n/a" }
+        return f(abs(wmY - bwY))
+    }
+
+    private func formatLockLog(noseY: CGFloat, shoulderMidY: CGFloat?, hipMidY: CGFloat?, wristMidY: CGFloat?) -> String {
+        let relGap = shoulderMidY.map { noseY - $0 }
+        return "LOCKED | nose=\(f(noseY)) shldr=\(fo(shoulderMidY)) hip=\(fo(hipMidY)) wrist=\(fo(wristMidY)) rel=\(fo(relGap))"
+    }
+
+    private func formatDownLog(noseY: CGFloat, shoulderMidY: CGFloat?, hipMidY: CGFloat?, wristMidY: CGFloat?) -> String {
+        let dn = baselineNoseY.map { noseY - $0 }
+        let ds = (shoulderMidY != nil && baselineShoulderMidY != nil) ? shoulderMidY! - baselineShoulderMidY! : nil as CGFloat?
+        let dr = (dn != nil && ds != nil) ? dn! - ds! : nil as CGFloat?
+        return "DOWN | nose=\(f(noseY)) shldr=\(fo(shoulderMidY)) wrist=\(fo(wristMidY)) | Δnose=\(fo(dn)) Δshldr=\(fo(ds)) Δrel=\(fo(dr)) wDrift=\(wristDriftStr(wristMidY))"
+    }
+
+    private func formatAscendingLog(noseY: CGFloat, shoulderMidY: CGFloat?, wristMidY: CGFloat?, duration: TimeInterval) -> String {
+        let dn = baselineNoseY.map { peakNoseY - $0 }
+        let ds = baselineShoulderMidY.map { peakShoulderMidY - $0 }
+        let dr = (dn != nil && ds != nil) ? dn! - ds! : nil as CGFloat?
+        return "ASCENDING dur=\(String(format: "%.2fs", duration)) | nose=\(f(noseY)) shldr=\(fo(shoulderMidY)) | Δnose=\(fo(dn)) Δshldr=\(fo(ds)) Δrel=\(fo(dr)) | peak: nose=\(f(peakNoseY)) shldr=\(f(peakShoulderMidY))"
+    }
+
+    private func formatRepLog(repNumber: Int, noseY: CGFloat, shoulderMidY: CGFloat?, wristMidY: CGFloat?, duration: TimeInterval) -> String {
+        let dn = baselineNoseY.map { peakNoseY - $0 }
+        let ds = baselineShoulderMidY.map { peakShoulderMidY - $0 }
+        let dr = (dn != nil && ds != nil) ? dn! - ds! : nil as CGFloat?
+        return "REP #\(repNumber) dur=\(String(format: "%.2fs", duration)) | nose=\(f(noseY)) shldr=\(fo(shoulderMidY)) wrist=\(fo(wristMidY)) | Δnose=\(fo(dn)) Δshldr=\(fo(ds)) Δrel=\(fo(dr)) wDrift=\(wristDriftStr(wristMidY)) | peak: nose=\(f(peakNoseY)) shldr=\(f(peakShoulderMidY))"
+    }
+
+    private func formatRejectLog(reason: String, noseY: CGFloat, shoulderMidY: CGFloat?, wristMidY: CGFloat?, duration: TimeInterval) -> String {
+        let dn = baselineNoseY.map { peakNoseY - $0 }
+        let ds = baselineShoulderMidY.map { peakShoulderMidY - $0 }
+        let dr = (dn != nil && ds != nil) ? dn! - ds! : nil as CGFloat?
+        return "REJECTED (\(reason)) dur=\(String(format: "%.2fs", duration)) | nose=\(f(noseY)) shldr=\(fo(shoulderMidY)) wrist=\(fo(wristMidY)) | Δnose=\(fo(dn)) Δshldr=\(fo(ds)) Δrel=\(fo(dr)) wDrift=\(wristDriftStr(wristMidY))"
     }
 }

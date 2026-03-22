@@ -72,22 +72,26 @@ final class FeedbackEngine {
         (.rightHip, "right hip"),
     ]
 
-    func evaluate(pose: PoseResult, isExercising: Bool) -> FeedbackResult {
+    /// - `isArmed`: true when the rep engine has a locked baseline (Ready/Down/Up phases).
+    ///   When armed, box and body-position checks are suppressed to avoid disruptive prompts mid-exercise.
+    func evaluate(pose: PoseResult, isArmed: Bool, isExercising: Bool) -> FeedbackResult {
         var items: [FeedbackItem] = []
 
-        // ---- Layer 1: Inside Box ----
-        if let boxItem = checkInsideBox(pose) {
-            items.append(boxItem)
+        if !isArmed {
+            // ---- Layer 1: Inside Box ----
+            if let boxItem = checkInsideBox(pose) {
+                items.append(boxItem)
+            }
+
+            // ---- Layer 2b: Body Position (plank / trunk) ----
+            if let posItem = checkBodyPosition(pose) {
+                items.append(posItem)
+            }
         }
 
         // ---- Layer 2a: Distance (shoulder span band) — soft cue ----
         if let dist = checkShoulderDistance(pose) {
             items.append(dist)
-        }
-
-        // ---- Layer 2b: Body Position (plank / trunk) ----
-        if let posItem = checkBodyPosition(pose) {
-            items.append(posItem)
         }
 
         // ---- Layer 3: Joint Visibility ----

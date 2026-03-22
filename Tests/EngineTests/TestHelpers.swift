@@ -12,14 +12,17 @@ enum SyntheticPose {
     /// - Shoulders near center (Y ~0.42)
     /// - Nose at or below shoulders (Y ~0.48)  — key plank discriminator
     /// - Elbows and hips close to shoulder level
+    /// - Wrists anchored on the floor (defaults to baseline shoulderY when nil)
     ///
     /// Adjust `noseY` to simulate pushup depth (higher Y = deeper).
+    /// Set `wristY` explicitly during descent to keep wrists anchored at baseline.
     static func pushupPose(
         noseY: CGFloat = 0.48,
         shoulderLeftX: CGFloat = 0.35,
         shoulderRightX: CGFloat = 0.65,
         shoulderY: CGFloat = 0.42,
         elbowY: CGFloat = 0.50,
+        wristY: CGFloat? = nil,
         hipY: CGFloat = 0.48,
         confidence: Float = 0.9,
         noseConfidence: Float? = nil,
@@ -29,6 +32,7 @@ enum SyntheticPose {
     ) -> PoseResult {
         let nc = noseConfidence ?? confidence
         let sc = shoulderConfidence ?? confidence
+        let wy = wristY ?? shoulderY
 
         let landmarks: [Landmark] = [
             Landmark(type: .nose, position: CGPoint(x: 0.5, y: noseY), confidence: nc),
@@ -38,8 +42,8 @@ enum SyntheticPose {
             Landmark(type: .rightShoulder, position: CGPoint(x: shoulderRightX, y: shoulderY + shoulderAsymmetryY), confidence: sc),
             Landmark(type: .leftElbow, position: CGPoint(x: 0.25, y: elbowY), confidence: confidence),
             Landmark(type: .rightElbow, position: CGPoint(x: 0.75, y: elbowY), confidence: confidence),
-            Landmark(type: .leftWrist, position: CGPoint(x: 0.20, y: shoulderY), confidence: confidence),
-            Landmark(type: .rightWrist, position: CGPoint(x: 0.80, y: shoulderY), confidence: confidence),
+            Landmark(type: .leftWrist, position: CGPoint(x: 0.20, y: wy), confidence: confidence),
+            Landmark(type: .rightWrist, position: CGPoint(x: 0.80, y: wy), confidence: confidence),
             Landmark(type: .leftHip, position: CGPoint(x: 0.40, y: hipY), confidence: confidence),
             Landmark(type: .rightHip, position: CGPoint(x: 0.60, y: hipY), confidence: confidence),
         ]
