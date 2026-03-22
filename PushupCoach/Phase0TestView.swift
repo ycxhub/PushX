@@ -232,8 +232,43 @@ final class Phase0ViewModel: ObservableObject {
     }
 
     func copyDebugLogsToPasteboard() {
-        UIPasteboard.general.string = debugLogText
+        let summary = generateSessionSummary()
+        UIPasteboard.general.string = summary + "\n" + debugLogText
         addDebug("Debug logs copied to clipboard")
+    }
+
+    private func generateSessionSummary() -> String {
+        let repLines = debugMessages.filter { $0.contains("REP #") }
+        let downLines = debugMessages.filter { $0.contains("DOWN |") }
+        let rejectedLines = debugMessages.filter { $0.contains("REJECTED") }
+        let ascendingLines = debugMessages.filter { $0.contains("ASCENDING dur=") }
+        let timeoutLines = debugMessages.filter { $0.contains("TIMEOUT") }
+        let lockedLines = debugMessages.filter { $0.contains("LOCKED |") }
+
+        var lines = [
+            "=== SESSION SUMMARY ===",
+            "Reps counted   : \(repLines.count)",
+            "DOWN entries    : \(downLines.count)",
+            "ASCENDING entries: \(ascendingLines.count)",
+            "REJECTED        : \(rejectedLines.count)",
+            "TIMEOUTS        : \(timeoutLines.count)",
+            "Baseline locks  : \(lockedLines.count)",
+            "Frames processed: \(processedFrameCount)",
+        ]
+
+        if !rejectedLines.isEmpty {
+            lines.append("--- Rejection reasons ---")
+            for line in rejectedLines {
+                if let start = line.range(of: "REJECTED ("),
+                   let end = line.range(of: ")", range: start.upperBound..<line.endIndex) {
+                    let reason = line[start.upperBound..<end.lowerBound]
+                    lines.append("  \(reason)")
+                }
+            }
+        }
+
+        lines.append("========================")
+        return lines.joined(separator: "\n")
     }
 
     func switchProvider() {
@@ -424,9 +459,9 @@ final class Phase0ViewModel: ObservableObject {
 
     private func addDebug(_ message: String) {
         let timestamp = String(format: "%.1f", Date.now.timeIntervalSince1970.truncatingRemainder(dividingBy: 1000))
-        debugMessages.append("[\(timestamp)] \(message)")
-        if debugMessages.count > 50 {
-            debugMessages.removeFirst(debugMessages.count - 50)
+        debugMessages.append("[F\(processedFrameCount) t\(timestamp)] \(message)")
+        if debugMessages.count > 200 {
+            debugMessages.removeFirst(debugMessages.count - 200)
         }
     }
 

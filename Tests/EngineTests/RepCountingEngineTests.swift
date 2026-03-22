@@ -165,6 +165,17 @@ final class RepCountingEngineTests: XCTestCase {
         XCTAssertEqual(engine.repCount, 0)
     }
 
+    func testHipDriftRejectsKneelingDescent() {
+        armEngine(baselineNoseY: 0.48)
+
+        // Nose/shoulder/wrist look like a real pushup, but hips shift: drift=|0.58-0.48|=0.10>0.08
+        for i in 0..<8 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, hipY: 0.58, timestamp: 2.0 + Double(i) * 0.04))
+        }
+        XCTAssertNotEqual(engine.currentPhase, .down, "Hip drift > 0.08 should prevent DOWN entry (kneeling detected)")
+        XCTAssertEqual(engine.repCount, 0)
+    }
+
     func testForwardSwayDoesNotTriggerRep() {
         armEngine(baselineNoseY: 0.48)
 
@@ -197,6 +208,25 @@ final class RepCountingEngineTests: XCTestCase {
         }
         XCTAssertEqual(engine.repCount, 0, "Rep completed in ~0.24s should be rejected (minimum 0.35s)")
         XCTAssertEqual(engine.currentPhase, .ready, "Engine should return to ready after rejection")
+    }
+
+    // MARK: - Maximum Rep Duration Gate
+
+    func testVeryLongRepRejected() {
+        armEngine(baselineNoseY: 0.48)
+
+        // Valid descent
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.62, shoulderY: 0.50, wristY: 0.42, timestamp: 2.0 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.currentPhase, .down)
+
+        // Stay at bottom for 9+ seconds, then return (exceeds 8s max)
+        for i in 0..<6 {
+            _ = engine.update(with: SyntheticPose.pushupPose(noseY: 0.49, shoulderY: 0.42, wristY: 0.42, timestamp: 12.0 + Double(i) * 0.04))
+        }
+        XCTAssertEqual(engine.repCount, 0, "Rep with duration > 8s should be rejected")
+        XCTAssertEqual(engine.currentPhase, .ready, "Engine should return to ready after max-duration rejection")
     }
 
     // MARK: - Ascending Phase (Return-to-Top Confirmation)

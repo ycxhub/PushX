@@ -77,7 +77,7 @@ struct LandmarkOverlayView: View {
         if landmark.confidence < 0.62 { return .yellow }
         switch phase {
         case .down: return Color(red: 1.0, green: 0.42, blue: 0.42)
-        case .ready, .up: return Color(red: 0.3, green: 0.9, blue: 0.5)
+        case .ready, .ascending: return Color(red: 0.3, green: 0.9, blue: 0.5)
         case .idle: return .gray
         case .paused: return .orange
         }
