@@ -1,0 +1,19 @@
+---
+description: Always use latest information; perform web search when needed. Treat current year as 2026.
+alwaysApply: true
+---
+
+# Research and Recency
+
+When implementation, design, or advice depends on external APIs, libraries, docs, or practices:
+
+1. **Perform a web search** for the latest information before relying on it. Do not assume in-memory or training knowledge is current.
+2. **Treat the current year as 2026** when checking recency (e.g., search for "2026" or "2025" where 2026 results are sparse).
+3. **Prefer official docs and recent articles** (current year or prior year) over older posts.
+
+Apply this when:
+- Integrating third-party SDKs (e.g., Supabase, Next.js, Cloudflare R2).
+- Following setup guides, env vars, or API signatures.
+- Implementing security, auth, or deployment steps.
+- Recommending versions, flags, or patterns that may have changed.
+
