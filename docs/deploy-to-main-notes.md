@@ -21,3 +21,20 @@
 3. `PushupCoach/CameraManager.swift` — 51 lines (43 insertions, 8 deletions)
 
 _Complexity:_ combined `git show HEAD --numstat` before this note: 6 files, 632 insertions + 134 deletions → **High** (> 200 lines).
+
+## #2 — Cursor slash commands and YCX agent rules [High]
+
+**Date & time (IST):** 22 Mar 2026, 10:36
+
+**Deployment notes**
+
+- **Feature enhancements:** Slash commands `deploy-to-main`, `pull-from-main`, `give-sql-code`; agent rules `generate-tasks`, `task-list`, `research-latest-info` for PRD/task workflow
+- **GitHub:** pushed `main` (`e0e4974`). **Vercel:** native iOS repo — no Vercel deploy from this push
+
+**3 files with largest changes (by lines changed)**
+
+1. `.cursor/rules/generate-tasks.mdc` — 79 lines (79 insertions)
+2. `.cursor/commands/pull-from-main.md` — 46 lines (46 insertions)
+3. `.cursor/rules/task-list.mdc` — 42 lines (42 insertions)
+
+_Complexity:_ `git show e0e4974 --numstat`: 6 files, 230 insertions → **High** (> 200 lines).
