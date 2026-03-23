@@ -96,25 +96,14 @@ struct HistoryView: View {
     // MARK: - Sessions List
 
     private var sessionsList: some View {
-        List {
+        LazyVStack(spacing: NKSpacing.md) {
             ForEach(sessions, id: \.id) { session in
                 NavigationLink(value: session.id) {
                     sessionRow(session)
                 }
-                .listRowBackground(Color.nkSurfaceContainerLow)
-                .listRowSeparator(.hidden)
-                .listRowInsets(EdgeInsets(top: NKSpacing.xs, leading: NKSpacing.xl, bottom: NKSpacing.xs, trailing: NKSpacing.xl))
-                .swipeActions(edge: .trailing) {
-                    Button(role: .destructive) {
-                        SessionStore.delete(session: session, context: modelContext)
-                    } label: {
-                        Label("Delete", systemImage: "trash")
-                    }
-                }
+                .buttonStyle(.plain)
             }
         }
-        .listStyle(.plain)
-        .scrollContentBackground(.hidden)
     }
 
     // MARK: - Session Row
@@ -160,9 +149,23 @@ struct HistoryView: View {
                     .foregroundStyle(Color.nkOnSurfaceVariant.opacity(0.3))
             }
 
-            Image(systemName: "chevron.right")
-                .font(.system(size: 10, weight: .bold))
-                .foregroundStyle(Color.nkOutlineVariant)
+            HStack(spacing: NKSpacing.md) {
+                Button {
+                    SessionStore.delete(session: session, context: modelContext)
+                } label: {
+                    Image(systemName: "trash")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundStyle(Color.nkOutlineVariant)
+                        .frame(width: 32, height: 32)
+                        .background(Color.nkSurfaceContainerHighest)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                }
+                .accessibilityLabel("Delete session")
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(Color.nkOutlineVariant)
+            }
         }
         .padding(.horizontal, NKSpacing.lg)
         .padding(.vertical, NKSpacing.md)

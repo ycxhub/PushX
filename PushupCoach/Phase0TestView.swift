@@ -191,15 +191,16 @@ final class Phase0ViewModel: ObservableObject {
                     scores = nil
                 }
 
+                self.addDebug("Camera stopped. Reps: \(self.repCount)")
                 let session = SessionStore.assemble(
                     repMeasurements: self.repEngine.completedReps,
                     formScores: scores,
                     providerType: self.providerType,
                     startedAt: self.sessionStartTime ?? Date(),
-                    endedAt: Date()
+                    endedAt: Date(),
+                    debugLog: self.debugMessages.joined(separator: "\n")
                 )
                 self.completedSession = session
-                self.addDebug("Camera stopped. Reps: \(self.repCount)")
             }
         }
     }
@@ -1049,6 +1050,8 @@ struct Phase0TestView: View {
         }
     }
 
+    private let repProgressTarget: CGFloat = 50
+
     private var cameraBottomBar: some View {
         VStack(spacing: NKSpacing.md) {
             GeometryReader { geo in
@@ -1057,13 +1060,13 @@ struct Phase0TestView: View {
                         .fill(Color.nkSurfaceContainer)
                     Rectangle()
                         .fill(Color.nkPrimary)
-                        .frame(width: geo.size.width * min(1, CGFloat(viewModel.repCount) / 20.0))
+                        .frame(width: geo.size.width * min(1, CGFloat(viewModel.repCount) / repProgressTarget))
                 }
             }
             .frame(height: 3)
             .clipShape(RoundedRectangle(cornerRadius: 2))
 
-            HStack(spacing: NKSpacing.lg) {
+            HStack(spacing: NKSpacing.md) {
                 Button {
                     viewModel.stopCamera()
                 } label: {
@@ -1075,6 +1078,24 @@ struct Phase0TestView: View {
                 }
                 .buttonStyle(NKPrimaryButtonStyle())
                 .accessibilityHint("Ends the current set and shows your scores")
+
+                Button {
+                    viewModel.resetSession()
+                    viewModel.startCamera()
+                } label: {
+                    Image(systemName: "arrow.counterclockwise")
+                        .font(.system(size: 16, weight: .medium))
+                        .foregroundStyle(Color.nkOnSurface)
+                        .frame(width: 52, height: 52)
+                        .background(Color.nkSurfaceContainerHigh)
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(Color.nkOutlineVariant.opacity(0.15), lineWidth: 1)
+                        )
+                }
+                .accessibilityLabel("Reset session")
+                .accessibilityHint("Clears rep count and restarts tracking")
 
                 Button {
                     viewModel.switchProvider()

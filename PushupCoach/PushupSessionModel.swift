@@ -15,6 +15,7 @@ final class PushupSession {
 
     var improvements: [String]
     var providerType: String
+    var debugLog: String
 
     @Relationship(deleteRule: .cascade, inverse: \PushupRepRecord.session)
     var reps: [PushupRepRecord]
@@ -30,7 +31,8 @@ final class PushupSession {
         consistencyScore: Int? = nil,
         improvements: [String] = [],
         providerType: String,
-        reps: [PushupRepRecord] = []
+        reps: [PushupRepRecord] = [],
+        debugLog: String = ""
     ) {
         self.id = id
         self.startedAt = startedAt
@@ -43,6 +45,7 @@ final class PushupSession {
         self.improvements = improvements
         self.providerType = providerType
         self.reps = reps
+        self.debugLog = debugLog
     }
 
     var durationSeconds: TimeInterval {

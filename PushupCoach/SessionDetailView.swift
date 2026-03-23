@@ -306,18 +306,71 @@ struct SessionDetailView: View {
     // MARK: - Export
 
     private var exportSection: some View {
-        Button {
-            let json = SessionExporter.toJSON(session: session)
-            UIPasteboard.general.string = json
-            copiedToast = true
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                copiedToast = false
+        VStack(spacing: NKSpacing.md) {
+            Button {
+                let json = SessionExporter.toJSON(session: session)
+                UIPasteboard.general.string = json
+                copiedToast = true
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    copiedToast = false
+                }
+            } label: {
+                Label("Copy for AI Coach", systemImage: "doc.on.clipboard")
             }
-        } label: {
-            Label("Copy for AI Coach", systemImage: "doc.on.clipboard")
+            .buttonStyle(NKSecondaryButtonStyle())
+            .accessibilityHint("Copies session data as JSON to clipboard")
+
+            if !session.debugLog.isEmpty {
+                debugLogSection
+            }
         }
-        .buttonStyle(NKSecondaryButtonStyle())
-        .accessibilityHint("Copies session data as JSON to clipboard")
+    }
+
+    @State private var showDebugLog = false
+
+    private var debugLogSection: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.md) {
+            Button {
+                showDebugLog.toggle()
+            } label: {
+                HStack {
+                    Text("DEBUG LOG")
+                        .nkTechnicalLabel()
+                    Spacer()
+                    Image(systemName: showDebugLog ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.nkOutlineVariant)
+                }
+            }
+
+            if showDebugLog {
+                ScrollView {
+                    Text(session.debugLog)
+                        .font(.system(.caption, design: .monospaced))
+                        .foregroundStyle(Color.nkPrimary.opacity(0.8))
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .textSelection(.enabled)
+                }
+                .frame(maxHeight: 200)
+                .padding(NKSpacing.md)
+                .background(Color.nkSurfaceContainerLowest)
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                Button {
+                    UIPasteboard.general.string = session.debugLog
+                    copiedToast = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                        copiedToast = false
+                    }
+                } label: {
+                    Label("Copy Debug Log", systemImage: "doc.on.clipboard")
+                }
+                .buttonStyle(NKGhostButtonStyle())
+                .accessibilityHint("Copies the raw debug log to clipboard")
+            }
+        }
+        .padding(NKSpacing.lg)
+        .nkCardElevated()
     }
 
     // MARK: - Toast

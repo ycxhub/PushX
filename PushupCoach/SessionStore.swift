@@ -56,7 +56,8 @@ enum SessionStore {
         formScores: FormScores?,
         providerType: PoseProviderType,
         startedAt: Date,
-        endedAt: Date
+        endedAt: Date,
+        debugLog: String = ""
     ) -> PushupSession {
         let repRecords = repMeasurements.enumerated().map { index, measurement in
             PushupRepRecord(from: measurement, repNumber: index + 1)
@@ -72,7 +73,8 @@ enum SessionStore {
             consistencyScore: formScores?.consistency,
             improvements: formScores?.improvements ?? [],
             providerType: providerType.rawValue,
-            reps: repRecords
+            reps: repRecords,
+            debugLog: debugLog
         )
 
         return session
