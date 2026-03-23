@@ -113,7 +113,10 @@ Review typically takes 24-48 hours.
 
 ## Deploy Privacy Policy to Vercel
 
-The privacy policy HTML is at `privacy-policy/index.html` with a `vercel.json` config.
+The site uses `privacy-policy/vercel.json`:
+
+- **`/`** → **308 redirect** to **`/pushx/`** so `hard75.com` and `hard75.com/pushx/` show the same marketing page (`pushx/index.html`).
+- **`/pushx/privacy-policy`** → rewrite to **`/index.html`** (plain-text privacy policy at repo root `privacy-policy/index.html`).
 
 ```bash
 cd privacy-policy

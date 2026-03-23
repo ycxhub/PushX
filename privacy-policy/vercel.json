@@ -1,4 +1,11 @@
 {
+  "redirects": [
+    {
+      "source": "/",
+      "destination": "/pushx/",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     { "source": "/pushx/privacy-policy", "destination": "/index.html" }
   ]
