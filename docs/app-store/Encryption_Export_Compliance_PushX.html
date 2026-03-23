@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Encryption Export Compliance — PushX</title>
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; line-height: 1.45; max-width: 720px; margin: 2rem auto; padding: 0 1.5rem; color: #111; }
+    h1 { font-size: 1.35rem; border-bottom: 1px solid #ccc; padding-bottom: 0.5rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.75rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.9rem; margin: 1rem 0; }
+    th, td { border: 1px solid #ccc; padding: 0.5rem 0.6rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .meta { color: #444; font-size: 0.9rem; margin-bottom: 1.5rem; }
+    .sig { margin-top: 2rem; }
+    @media print { body { margin: 0; max-width: none; } }
+  </style>
+</head>
+<body>
+  <h1>Encryption Export Compliance — PushX</h1>
+  <div class="meta">
+    <strong>App name:</strong> PushX<br />
+    <strong>Bundle identifier:</strong> com.pushx.app<br />
+    <strong>Developer / legal entity:</strong> Chaitanya Yalakaturu (Apple Developer account holder)<br />
+    <strong>Document date:</strong> March 23, 2026
+  </div>
+
+  <h2>1. Purpose</h2>
+  <p>This document supports <strong>App Store Connect</strong> export compliance and describes how the PushX iOS application uses cryptography, if at all.</p>
+
+  <h2>2. Summary (self-classification)</h2>
+  <p>PushX <strong>does not implement proprietary or non-standard encryption</strong> and <strong>does not use standard encryption algorithms outside of, or in addition to, encryption provided by Apple’s operating system</strong> for purposes that would require separate export documentation under typical U.S. BIS / EAR mass-market software rules.</p>
+  <p>The application’s functionality (on-device camera processing, pose estimation, local data storage) <strong>does not rely on custom cryptographic modules</strong> controlled by the developer.</p>
+
+  <h2>3. Encryption and cryptographic use in PushX</h2>
+  <table>
+    <thead>
+      <tr><th>Area</th><th>Use of encryption / crypto</th></tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Networking</strong></td>
+        <td>The app does not perform custom TLS/SSL or implement its own encrypted protocols. Any incidental use of system-provided secure transport (e.g. if future updates use HTTPS via Apple frameworks) would use <strong>encryption within Apple’s operating system</strong> only.</td>
+      </tr>
+      <tr>
+        <td><strong>On-device processing</strong></td>
+        <td>Computer vision and machine learning (e.g. Apple frameworks, bundled on-device models) operate on local data. This is <strong>not</strong> classified here as separate “non-exempt” encryption for export purposes.</td>
+      </tr>
+      <tr>
+        <td><strong>Local storage</strong></td>
+        <td>Data may be stored using Apple-provided APIs (e.g. SwiftData / file system). The developer does <strong>not</strong> ship a separate encryption layer for export classification beyond what the OS provides.</td>
+      </tr>
+      <tr>
+        <td><strong>Proprietary algorithms</strong></td>
+        <td><strong>None.</strong></td>
+      </tr>
+      <tr>
+        <td><strong>Non-standard encryption</strong></td>
+        <td><strong>None</strong> implemented by the developer.</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>4. Info.plist declaration</h2>
+  <p>The app is configured with:</p>
+  <ul>
+    <li><strong><code>ITSAppUsesNonExemptEncryption</code></strong> = <strong>NO</strong> (<code>false</code>)</li>
+  </ul>
+  <p>This indicates the app <strong>does not</strong> use encryption that is <strong>non-exempt</strong> under Apple’s upload / compliance flow for the standard consumer app case described above.</p>
+
+  <h2>5. Certification</h2>
+  <p>To the best of my knowledge, the statements in this document accurately describe PushX as of the date below.</p>
+  <div class="sig">
+    <p><strong>Name:</strong> Chaitanya Yalakaturu<br />
+    <strong>Role:</strong> Developer / Account Holder<br />
+    <strong>Date:</strong> March 23, 2026</p>
+  </div>
+
+  <h2>6. Note</h2>
+  <p>Regulatory classification can depend on future features. If PushX later adds custom cryptography, proprietary algorithms, or non-exempt encryption, this document and the App Store encryption answers must be updated before distribution.</p>
+</body>
+</html>

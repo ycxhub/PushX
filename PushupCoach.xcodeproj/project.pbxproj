@@ -41,6 +41,7 @@
 		B000000000000000000022 /* HistoryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000022 /* HistoryView.swift */; };
 		B000000000000000000023 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000023 /* HomeView.swift */; };
 		B000000000000000000024 /* DesignSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000024 /* DesignSystem.swift */; };
+		B000000000000000000025 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = A000000000000000000025 /* PrivacyInfo.xcprivacy */; };
 		BPKG0000000000000000001 /* SwiftTasksVision in Frameworks */ = {isa = PBXBuildFile; productRef = PPKG0000000000000000001 /* SwiftTasksVision */; };
 /* End PBXBuildFile section */
 
@@ -81,6 +82,7 @@
 		A000000000000000000022 /* HistoryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HistoryView.swift; sourceTree = "<group>"; };
 		A000000000000000000023 /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		A000000000000000000024 /* DesignSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DesignSystem.swift; sourceTree = "<group>"; };
+		A000000000000000000025 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -139,6 +141,7 @@
 				A000000000000000000024 /* DesignSystem.swift */,
 				C000000000000000000004 /* Models */,
 				A00000000000000000000A /* Info.plist */,
+				A000000000000000000025 /* PrivacyInfo.xcprivacy */,
 				A00000000000000000000B /* Assets.xcassets */,
 			);
 			path = PushupCoach;
@@ -171,6 +174,7 @@
 				D000000000000000000001 /* Sources */,
 				D000000000000000000002 /* Frameworks */,
 				D000000000000000000003 /* Resources */,
+				D000000000000000000004 /* Fix MediaPipe Framework Plist */,
 			);
 			buildRules = (
 			);
@@ -210,7 +214,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				E000000000000000000001 /* PushupCoach */,
+				E000000000000000000001 /* PushX */,
 			);
 		};
 /* End PBXProject section */
@@ -223,10 +227,32 @@
 				B00000000000000000000B /* Assets.xcassets in Resources */,
 				B000000000000000000014 /* pose_landmarker_full.task in Resources */,
 				B000000000000000000016 /* face_landmarker.task in Resources */,
+				B000000000000000000025 /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		D000000000000000000004 /* Fix MediaPipe Framework Plist */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Fix MediaPipe Framework Plist";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "for PLIST in \"${CODESIGNING_FOLDER_PATH}/Frameworks/MediaPipeTasksVision.framework/Info.plist\" \"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/MediaPipeTasksVision.framework/Info.plist\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Frameworks/MediaPipeTasksVision.framework/Info.plist\"; do\n  if [ -f \"$PLIST\" ]; then\n    /usr/libexec/PlistBuddy -c \"Add :MinimumOSVersion string 13.0\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleShortVersionString string 1.0\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string 1\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleName string MediaPipeTasksVision\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleInfoDictionaryVersion string 6.0\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleSupportedPlatforms array\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleSupportedPlatforms:0 string iPhoneOS\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Set :CFBundlePackageType FMWK\" \"$PLIST\" 2>/dev/null || true\n    echo \"Patched: $PLIST\"\n  fi\ndone\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		D000000000000000000001 /* Sources */ = {
@@ -285,12 +311,16 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.pushupcoach.phase0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pushx.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Debug;
 		};
@@ -309,12 +339,16 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 0.1.0;
-				PRODUCT_BUNDLE_IDENTIFIER = com.pushupcoach.phase0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.pushx.app;
 				PRODUCT_NAME = "$(TARGET_NAME)";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
+				SUPPORTS_MAC_DESIGNED_FOR_IPHONE_IPAD = NO;
+				SUPPORTS_XR_DESIGNED_FOR_IPHONE_IPAD = NO;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2";
+				TARGETED_DEVICE_FAMILY = 1;
 			};
 			name = Release;
 		};

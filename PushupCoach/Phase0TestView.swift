@@ -751,6 +751,7 @@ struct Phase0TestView: View {
                     .disabled(viewModel.isStartingCamera)
                     .accessibilityHint("Starts the camera for pushup tracking")
 
+                    #if DEBUG
                     Button {
                         showFaceOrientationTest = true
                     } label: {
@@ -766,15 +767,18 @@ struct Phase0TestView: View {
                             .foregroundStyle(Color.nkOutline)
                     }
                     .padding(.top, NKSpacing.sm)
+                    #endif
                 }
                 .padding(.horizontal, NKSpacing.xl)
                 .padding(.top, NKSpacing.section)
 
+                #if DEBUG
                 if showDebugPanel {
                     debugPanel
                         .padding(.horizontal, NKSpacing.xl)
                         .padding(.top, NKSpacing.lg)
                 }
+                #endif
 
                 Spacer(minLength: NKSpacing.section)
             }
@@ -1097,6 +1101,7 @@ struct Phase0TestView: View {
                 .accessibilityLabel("Reset session")
                 .accessibilityHint("Clears rep count and restarts tracking")
 
+                #if DEBUG
                 Button {
                     viewModel.switchProvider()
                 } label: {
@@ -1112,6 +1117,7 @@ struct Phase0TestView: View {
                         )
                 }
                 .accessibilityLabel("Switch pose provider")
+                #endif
             }
         }
     }
@@ -1325,4 +1331,3 @@ struct Phase0TestView: View {
         .nkCardElevated()
     }
 }
-

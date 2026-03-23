@@ -320,9 +320,11 @@ struct SessionDetailView: View {
             .buttonStyle(NKSecondaryButtonStyle())
             .accessibilityHint("Copies session data as JSON to clipboard")
 
+            #if DEBUG
             if !session.debugLog.isEmpty {
                 debugLogSection
             }
+            #endif
         }
     }
 

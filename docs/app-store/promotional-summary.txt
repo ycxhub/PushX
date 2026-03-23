@@ -1,0 +1,1 @@
+PushX helps users count pushups and improve form using the iPhone camera and on-device pose detection. Workout history stay on the device.
