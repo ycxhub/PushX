@@ -3,7 +3,7 @@
     {
       "source": "/",
       "destination": "/pushx/",
-      "permanent": true
+      "permanent": false
     }
   ],
   "rewrites": [

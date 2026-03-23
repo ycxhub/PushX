@@ -115,7 +115,7 @@ Review typically takes 24-48 hours.
 
 The site uses `privacy-policy/vercel.json`:
 
-- **`/`** → **308 redirect** to **`/pushx/`** so `hard75.com` and `hard75.com/pushx/` show the same marketing page (`pushx/index.html`).
+- **`/`** → **307 temporary redirect** to **`/pushx/`** so `hard75.com` and `hard75.com/pushx/` show the same marketing page (`pushx/index.html`).
 - **`/pushx/privacy-policy`** → rewrite to **`/index.html`** (plain-text privacy policy at repo root `privacy-policy/index.html`).
 
 ```bash
