@@ -157,3 +157,21 @@ _Complexity:_ `git show 896d6b8 --numstat`: 23 files, 2545 insertions + 707 dele
 3. `docs/app-store/Encryption_Export_Compliance_PushX.html` — 82 lines (82 insertions)
 
 _Complexity:_ `git diff 8ae9ab5 f014630 --numstat`: 19 files, 841 insertions + 101 deletions → **High** (> 200 lines).
+
+## #9 — Marketing page copy overhaul — design-system placeholders → PushX product copy [Medium]
+
+**Date & time (IST):** 23 Mar 2026, 12:33
+
+**Deployment notes**
+
+- **Feature enhancements:** Replace all design-system placeholder copy (Neon Kinetic, Diamond Kinetics, Hypertrophy Block, Calibration, etc.) with product-relevant PushX messaging — emotional ("Train alone, train right", "Your phone watches. Your form improves.") and rational (on-device AI, form scoring, privacy-first)
+- **Bug fixes:** Header icon replaced with actual PushX app icon (was external Google placeholder); favicon and apple-touch-icon added; "PUSHX" → "PushX" branding; Landscape → Portrait mode (matches actual app); page title and meta description updated for SEO
+- **Assets:** `pushx-app-icon-1024.png` added to `privacy-policy/pushx/` for web use
+- **GitHub:** pushed `main` (`b7ec597`). **Vercel:** deploy `privacy-policy/pushx/` for updated marketing page
+
+**3 files with largest changes (by lines changed)**
+
+1. `privacy-policy/pushx/index.html` — 81 lines (47 insertions, 34 deletions)
+2. `privacy-policy/pushx/pushx-app-icon-1024.png` — binary (new file)
+
+_Complexity:_ `git show b7ec597 --numstat`: 2 files, 47 insertions + 34 deletions → **Medium** (50–200 lines AND < 10 files).
