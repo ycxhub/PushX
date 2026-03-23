@@ -96,12 +96,14 @@ struct HistoryView: View {
     // MARK: - Sessions List
 
     private var sessionsList: some View {
-        LazyVStack(spacing: NKSpacing.md) {
+        List {
             ForEach(sessions, id: \.id) { session in
                 NavigationLink(value: session.id) {
                     sessionRow(session)
                 }
-                .buttonStyle(.plain)
+                .listRowBackground(Color.nkSurfaceContainerLow)
+                .listRowSeparator(.hidden)
+                .listRowInsets(EdgeInsets(top: NKSpacing.xs, leading: NKSpacing.xl, bottom: NKSpacing.xs, trailing: NKSpacing.xl))
                 .swipeActions(edge: .trailing) {
                     Button(role: .destructive) {
                         SessionStore.delete(session: session, context: modelContext)
@@ -111,6 +113,8 @@ struct HistoryView: View {
                 }
             }
         }
+        .listStyle(.plain)
+        .scrollContentBackground(.hidden)
     }
 
     // MARK: - Session Row

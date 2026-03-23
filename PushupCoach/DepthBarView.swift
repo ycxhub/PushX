@@ -1,7 +1,7 @@
 import SwiftUI
 
 /// Vertical bar showing real-time push-up depth as a 0–1 fill percentage.
-/// Electric blue at top (up position), secondary cyan at full depth, with a target line.
+/// Primary blue at top (up position), primary container at full depth, with a target line.
 struct DepthBarView: View {
     let depthPercent: CGFloat
     let targetDepthPercent: CGFloat

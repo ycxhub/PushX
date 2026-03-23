@@ -77,7 +77,7 @@ extension Font {
     /// 3.5rem (56pt) — Live rep counts, primary metrics. Heavy weight.
     static let nkDisplayLG = Font.system(size: 56, weight: .heavy)
 
-    /// 8rem (128pt) — Active workout rep count. Maximum impact.
+    /// 6rem (96pt) — Active workout rep count. Maximum impact.
     static let nkDisplayXL = Font.system(size: 96, weight: .heavy)
 
     /// 1.75rem (28pt) — Section titles, exercise names.

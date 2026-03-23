@@ -21,11 +21,13 @@ struct HomeView: View {
         var checkDate = cal.startOfDay(for: Date())
         let sessionDays = Set(sessions.map { cal.startOfDay(for: $0.startedAt) })
         if !sessionDays.contains(checkDate) {
-            checkDate = cal.date(byAdding: .day, value: -1, to: checkDate)!
+            guard let prev = cal.date(byAdding: .day, value: -1, to: checkDate) else { return 0 }
+            checkDate = prev
         }
         while sessionDays.contains(checkDate) {
             streak += 1
-            checkDate = cal.date(byAdding: .day, value: -1, to: checkDate)!
+            guard let prev = cal.date(byAdding: .day, value: -1, to: checkDate) else { break }
+            checkDate = prev
         }
         return streak
     }
@@ -196,7 +198,7 @@ struct HomeView: View {
         let today = cal.startOfDay(for: Date())
         let weekday = cal.component(.weekday, from: today)
         let mondayOffset = (weekday + 5) % 7
-        let monday = cal.date(byAdding: .day, value: -mondayOffset, to: today)!
+        let monday = cal.date(byAdding: .day, value: -mondayOffset, to: today) ?? today
         let sessionDays = Set(sessions.map { cal.startOfDay(for: $0.startedAt) })
         let dayLabels = ["M", "T", "W", "T", "F", "S", "S"]
 
@@ -211,7 +213,7 @@ struct HomeView: View {
 
             HStack {
                 ForEach(0..<7, id: \.self) { i in
-                    let day = cal.date(byAdding: .day, value: i, to: monday)!
+                    let day = cal.date(byAdding: .day, value: i, to: monday) ?? today
                     let isToday = cal.isDate(day, inSameDayAs: today)
                     let hasSession = sessionDays.contains(cal.startOfDay(for: day))
                     let isFuture = day > today

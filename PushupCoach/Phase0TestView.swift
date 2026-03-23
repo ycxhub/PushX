@@ -77,7 +77,7 @@ final class Phase0ViewModel: ObservableObject {
     private var lastRepCount: Int = 0
     private var startupAttemptID: UUID?
     private var startupWatchdogTask: Task<Void, Never>?
-    private(set) var sessionStartTime: Date?
+    @Published private(set) var sessionStartTime: Date?
 
     var captureSession: AVCaptureSession { cameraManager.session }
     var isStartingCamera: Bool {
@@ -110,21 +110,6 @@ final class Phase0ViewModel: ObservableObject {
             return "Camera live"
         case .failed:
             return "Camera failed to start"
-        }
-    }
-
-    var startupBannerText: String {
-        switch cameraStartupPhase {
-        case .idle:
-            return "State: Idle"
-        case .requestingPermission:
-            return "State: Requesting camera access"
-        case .configuringSession:
-            return "State: Configuring capture session"
-        case .running:
-            return "State: Camera running"
-        case .failed:
-            return "State: Camera failed"
         }
     }
 
@@ -1320,20 +1305,3 @@ struct Phase0TestView: View {
     }
 }
 
-struct Phase0ButtonStyle: ButtonStyle {
-    var isPrimary: Bool = false
-
-    func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .font(.system(size: 13, weight: .bold))
-            .textCase(.uppercase)
-            .tracking(1)
-            .foregroundStyle(isPrimary ? Color.nkOnPrimaryContainer : Color.nkOnSurface)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
-            .background(isPrimary ? LinearGradient.kineticGradient : LinearGradient(colors: [Color.nkSurfaceContainerHighest], startPoint: .leading, endPoint: .trailing))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            .animation(.easeOut(duration: 0.12), value: configuration.isPressed)
-    }
-}

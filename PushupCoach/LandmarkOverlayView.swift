@@ -76,7 +76,7 @@ struct LandmarkOverlayView: View {
     private func dotColor(for landmark: OverlayLandmark, phase: RepCountingEngine.Phase) -> Color {
         if landmark.confidence < 0.62 { return .nkSecondary }
         switch phase {
-        case .down: return .nkError
+        case .down: return .nkSecondaryDim
         case .ready, .ascending: return .nkPrimary
         case .idle: return .nkOutline
         case .paused: return .nkError
