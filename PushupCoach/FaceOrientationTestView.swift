@@ -74,7 +74,7 @@ struct FaceOrientationTestView: View {
 
     var body: some View {
         ZStack {
-            Color.black.ignoresSafeArea()
+            Color.nkSurface.ignoresSafeArea()
 
             GeometryReader { geo in
                 ZStack {
@@ -108,7 +108,7 @@ struct FaceOrientationTestView: View {
                         .font(.caption.monospacedDigit())
                         .foregroundStyle(.white)
                         .padding(8)
-                        .background(.black.opacity(0.45))
+                        .background(Color.nkSurface.opacity(0.7))
                         .clipShape(RoundedRectangle(cornerRadius: 8))
                         .padding(12)
                 }
@@ -127,7 +127,7 @@ struct FaceOrientationTestView: View {
                 }
                 .padding(.vertical, 16)
                 .frame(maxWidth: .infinity)
-                .background(.black.opacity(0.55))
+                .background(Color.nkSurface.opacity(0.7))
             }
         }
         .preferredColorScheme(.dark)
@@ -153,12 +153,12 @@ private struct FaceLandmarkCanvasView: View {
             for p in points {
                 let r: CGFloat = 1.2
                 let rect = CGRect(x: p.x - r, y: p.y - r, width: r * 2, height: r * 2)
-                context.fill(Path(ellipseIn: rect), with: .color(.green.opacity(0.85)))
+                context.fill(Path(ellipseIn: rect), with: .color(Color.nkPrimary.opacity(0.85)))
             }
 
             if points.count > 10 {
-                strokePolyline(context: context, indices: FaceMeshTopology.faceOval, color: .white.opacity(0.35), closePath: true)
-                strokePolyline(context: context, indices: FaceMeshTopology.lipsOuter, color: Color(red: 1, green: 0.42, blue: 0.42).opacity(0.5), closePath: false)
+                strokePolyline(context: context, indices: FaceMeshTopology.faceOval, color: Color.nkOnSurface.opacity(0.35), closePath: true)
+                strokePolyline(context: context, indices: FaceMeshTopology.lipsOuter, color: Color.nkError.opacity(0.5), closePath: false)
             }
         }
     }

@@ -3,7 +3,7 @@ import SwiftData
 import os
 
 @main
-struct PushupCoachApp: App {
+struct PushXApp: App {
     let modelContainer: ModelContainer
 
     init() {

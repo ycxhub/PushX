@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		B000000000000000000001 /* PushupCoachApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000001 /* PushupCoachApp.swift */; };
+		B000000000000000000001 /* PushXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000001 /* PushXApp.swift */; };
 		B000000000000000000002 /* Phase0TestView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000002 /* Phase0TestView.swift */; };
 		B000000000000000000003 /* PoseProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000003 /* PoseProvider.swift */; };
 		B000000000000000000004 /* AppleVisionPoseProvider.swift in Sources */ = {isa = PBXBuildFile; fileRef = A000000000000000000004 /* AppleVisionPoseProvider.swift */; };
@@ -45,7 +45,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		A000000000000000000001 /* PushupCoachApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushupCoachApp.swift; sourceTree = "<group>"; };
+		A000000000000000000001 /* PushXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushXApp.swift; sourceTree = "<group>"; };
 		A000000000000000000002 /* Phase0TestView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Phase0TestView.swift; sourceTree = "<group>"; };
 		A000000000000000000003 /* PoseProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseProvider.swift; sourceTree = "<group>"; };
 		A000000000000000000004 /* AppleVisionPoseProvider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppleVisionPoseProvider.swift; sourceTree = "<group>"; };
@@ -56,7 +56,7 @@
 		A000000000000000000009 /* LandmarkOverlayView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkOverlayView.swift; sourceTree = "<group>"; };
 		A00000000000000000000A /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A00000000000000000000B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		A00000000000000000000C /* PushupCoach.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PushupCoach.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		A00000000000000000000C /* PushX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PushX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		A00000000000000000000D /* VisionOrientation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisionOrientation.swift; sourceTree = "<group>"; };
 		A00000000000000000000E /* LandmarkSmoother.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LandmarkSmoother.swift; sourceTree = "<group>"; };
 		A00000000000000000000F /* PoseTrackingGate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PoseTrackingGate.swift; sourceTree = "<group>"; };
@@ -106,7 +106,7 @@
 		C000000000000000000002 /* PushupCoach */ = {
 			isa = PBXGroup;
 			children = (
-				A000000000000000000001 /* PushupCoachApp.swift */,
+				A000000000000000000001 /* PushXApp.swift */,
 				A000000000000000000003 /* PoseProvider.swift */,
 				A000000000000000000004 /* AppleVisionPoseProvider.swift */,
 				A000000000000000000011 /* MediaPipePoseProvider.swift */,
@@ -147,7 +147,7 @@
 		C000000000000000000003 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				A00000000000000000000C /* PushupCoach.app */,
+				A00000000000000000000C /* PushX.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -164,9 +164,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		E000000000000000000001 /* PushupCoach */ = {
+		E000000000000000000001 /* PushX */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 200000000000000000000001 /* Build configuration list for PBXNativeTarget "PushupCoach" */;
+			buildConfigurationList = 200000000000000000000001 /* Build configuration list for PBXNativeTarget "PushX" */;
 			buildPhases = (
 				D000000000000000000001 /* Sources */,
 				D000000000000000000002 /* Frameworks */,
@@ -176,12 +176,12 @@
 			);
 			dependencies = (
 			);
-			name = PushupCoach;
+			name = PushX;
 			packageProductDependencies = (
 				PPKG0000000000000000001 /* SwiftTasksVision */,
 			);
-			productName = PushupCoach;
-			productReference = A00000000000000000000C /* PushupCoach.app */;
+			productName = PushX;
+			productReference = A00000000000000000000C /* PushX.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -233,7 +233,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				B000000000000000000001 /* PushupCoachApp.swift in Sources */,
+				B000000000000000000001 /* PushXApp.swift in Sources */,
 				B000000000000000000002 /* Phase0TestView.swift in Sources */,
 				B000000000000000000003 /* PoseProvider.swift in Sources */,
 				B000000000000000000004 /* AppleVisionPoseProvider.swift in Sources */,
@@ -442,7 +442,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		200000000000000000000001 /* Build configuration list for PBXNativeTarget "PushupCoach" */ = {
+		200000000000000000000001 /* Build configuration list for PBXNativeTarget "PushX" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				100000000000000000000001 /* Debug */,

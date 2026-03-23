@@ -55,7 +55,7 @@ struct LandmarkOverlayView: View {
                 var path = Path()
                 path.move(to: a.point)
                 path.addLine(to: b.point)
-                context.stroke(path, with: .color(.white.opacity(0.55)), lineWidth: 2.5)
+                context.stroke(path, with: .color(Color.nkOnSurface.opacity(0.55)), lineWidth: 2.5)
             }
 
             for lm in landmarks {
@@ -74,12 +74,12 @@ struct LandmarkOverlayView: View {
     }
 
     private func dotColor(for landmark: OverlayLandmark, phase: RepCountingEngine.Phase) -> Color {
-        if landmark.confidence < 0.62 { return .yellow }
+        if landmark.confidence < 0.62 { return .nkSecondary }
         switch phase {
-        case .down: return Color(red: 1.0, green: 0.42, blue: 0.42)
-        case .ready, .ascending: return Color(red: 0.3, green: 0.9, blue: 0.5)
-        case .idle: return .gray
-        case .paused: return .orange
+        case .down: return .nkError
+        case .ready, .ascending: return .nkPrimary
+        case .idle: return .nkOutline
+        case .paused: return .nkError
         }
     }
 }
