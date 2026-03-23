@@ -138,3 +138,22 @@ _Complexity:_ `git show a93c243 --numstat`: 26 files, 2398 insertions + 59 delet
 3. `PushupCoach/SessionDetailView.swift` — 414 lines (285 insertions, 129 deletions)
 
 _Complexity:_ `git show 896d6b8 --numstat`: 23 files, 2545 insertions + 707 deletions → **High** (> 200 lines).
+
+## #8 — App Store prep, privacy manifest, production bundle ID, review UI fixes [High]
+
+**Date & time (IST):** 23 Mar 2026, 12:02
+
+**Deployment notes**
+
+- **Bug fixes / polish:** Complete Neon Kinetic migration (remaining coral → `nk*` tokens); code review fixes (session start reactivity, swipe delete, force unwraps); review feedback (delete affordances, reset, debug log persistence, progress bar)
+- **New features:** `PrivacyInfo.xcprivacy` privacy manifest bundled in app; `privacy-policy/pushx/` privacy + support pages; `docs/app-store/` encryption export compliance (HTML + MD), promotional summary
+- **Feature enhancements:** `MARKETING_VERSION` 1.0, `PRODUCT_BUNDLE_IDENTIFIER` `com.pushx.app`, iPhone-only (`TARGETED_DEVICE_FAMILY` = 1); `ITSAppUsesNonExemptEncryption` false; shell script build phase patches MediaPipeTasksVision framework `Info.plist` for store validation; Xcode target display name **PushX**; `#if DEBUG` gates on face-orientation test, debug panel, provider switch, session debug log section
+- **GitHub:** pushed `main` (`8ae9ab5` → `f014630`, 4 commits). **Vercel:** deploy `privacy-policy/pushx/` as needed for App Store URLs
+
+**3 files with largest changes (by lines changed)** _(range `8ae9ab5..f014630`)_
+
+1. `privacy-policy/pushx/index.html` — 375 lines (375 insertions)
+2. `privacy-policy/pushx/support/index.html` — 104 lines (104 insertions)
+3. `docs/app-store/Encryption_Export_Compliance_PushX.html` — 82 lines (82 insertions)
+
+_Complexity:_ `git diff 8ae9ab5 f014630 --numstat`: 19 files, 841 insertions + 101 deletions → **High** (> 200 lines).
