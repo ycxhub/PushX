@@ -11,15 +11,15 @@ struct PushXApp: App {
         do {
             modelContainer = try ModelContainer(for: PushupSession.self, PushupRepRecord.self)
         } catch {
-            logger.error("ModelContainer init failed: \(error.localizedDescription) — resetting store")
-            let config = ModelConfiguration(isStoredInMemoryOnly: false)
+            logger.error("ModelContainer init failed: \(error.localizedDescription) — falling back to in-memory store for safety")
+            let config = ModelConfiguration(isStoredInMemoryOnly: true)
             do {
                 modelContainer = try ModelContainer(
                     for: PushupSession.self, PushupRepRecord.self,
                     configurations: config
                 )
             } catch {
-                fatalError("Cannot create ModelContainer after reset: \(error)")
+                fatalError("Cannot create ModelContainer fallback: \(error)")
             }
         }
     }

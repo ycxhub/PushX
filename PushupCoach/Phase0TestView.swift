@@ -59,6 +59,7 @@ final class Phase0ViewModel: ObservableObject {
     private let smoother = LandmarkSmoother(alpha: 0.28)
     private let trackingGate = PoseTrackingGate()
     private let feedbackEngine = FeedbackEngine()
+    private let diagnosticsCollector = SessionDiagnosticsCollector()
     private var appleVisionProvider = AppleVisionPoseProvider()
     private var mediaPipeProvider: MediaPipePoseProvider?
 
@@ -135,8 +136,10 @@ final class Phase0ViewModel: ObservableObject {
         cameraErrorMessage = nil
         guard !isStartingCamera, cameraStartupPhase != .running else { return }
 
-        sessionStartTime = Date()
+        let startTime = Date()
+        sessionStartTime = startTime
         completedSession = nil
+        diagnosticsCollector.beginSession(providerType: providerType, startedAt: startTime)
 
         let attemptID = UUID()
         startupAttemptID = attemptID
@@ -161,11 +164,13 @@ final class Phase0ViewModel: ObservableObject {
                 case .denied:
                     self.cameraErrorMessage = "Camera access is required to start a session. You can enable it in Settings → Privacy & Security → Camera."
                     self.addDebug("Camera permission denied")
+                    self.diagnosticsCollector.noteCameraFailure("permission_denied")
                     self.updateCameraStartupPhase(.failed)
                     self.startupAttemptID = nil
                 case .timedOut:
                     self.cameraErrorMessage = "Camera permission did not resolve in time. Please try again."
                     self.addDebug("Camera permission request timed out after 8 seconds")
+                    self.diagnosticsCollector.noteCameraFailure("permission_timeout")
                     self.updateCameraStartupPhase(.failed)
                     self.startupAttemptID = nil
                 }
@@ -174,6 +179,25 @@ final class Phase0ViewModel: ObservableObject {
     }
 
     func stopCamera() {
+        finishSessionAndStopCapture()
+    }
+
+    func retryCameraStart() {
+        diagnosticsCollector.noteRetry()
+        cameraErrorMessage = nil
+        cancelStartupWatchdog()
+        startupAttemptID = nil
+        cameraManager.clearOutputCallbacks()
+        cameraManager.resetAndStop { [weak self] in
+            Task { @MainActor in
+                guard let self else { return }
+                self.updateCameraStartupPhase(.idle, log: "Recovery reset finished")
+                self.startCamera()
+            }
+        }
+    }
+
+    private func finishSessionAndStopCapture() {
         cancelStartupWatchdog()
         startupAttemptID = nil
         cameraManager.clearOutputCallbacks()
@@ -192,13 +216,20 @@ final class Phase0ViewModel: ObservableObject {
                 }
 
                 self.addDebug("Camera stopped. Reps: \(self.repCount)")
+                let diagnostics = self.diagnosticsCollector.finalize(
+                    endedAt: Date(),
+                    processedFrameCount: self.processedFrameCount,
+                    repCount: self.repCount,
+                    engineDiagnostics: self.repEngine.diagnosticsSnapshot
+                )
                 let session = SessionStore.assemble(
                     repMeasurements: self.repEngine.completedReps,
                     formScores: scores,
                     providerType: self.providerType,
                     startedAt: self.sessionStartTime ?? Date(),
                     endedAt: Date(),
-                    debugLog: self.debugMessages.joined(separator: "\n")
+                    debugLog: self.debugMessages.joined(separator: "\n"),
+                    diagnostics: diagnostics
                 )
                 self.completedSession = session
             }
@@ -246,6 +277,7 @@ final class Phase0ViewModel: ObservableObject {
     private func generateSessionSummary() -> String {
         let repLines = debugMessages.filter { $0.contains("REP #") }
         let downLines = debugMessages.filter { $0.contains("DOWN |") }
+        let bootstrapLines = debugMessages.filter { $0.contains("BOOTSTRAP DOWN") }
         let rejectedLines = debugMessages.filter { $0.contains("REJECTED") }
         let ascendingLines = debugMessages.filter { $0.contains("ASCENDING dur=") }
         let timeoutLines = debugMessages.filter { $0.contains("TIMEOUT") }
@@ -255,6 +287,7 @@ final class Phase0ViewModel: ObservableObject {
             "=== SESSION SUMMARY ===",
             "Reps counted   : \(repLines.count)",
             "DOWN entries    : \(downLines.count)",
+            "Bootstrap starts: \(bootstrapLines.count)",
             "ASCENDING entries: \(ascendingLines.count)",
             "REJECTED        : \(rejectedLines.count)",
             "TIMEOUTS        : \(timeoutLines.count)",
@@ -299,6 +332,7 @@ final class Phase0ViewModel: ObservableObject {
         guard let raw else {
             let gate = trackingGate.update(pose: nil)
             trackingState = gate.state
+            diagnosticsCollector.recordFrame(pose: Optional<PoseResult>.none, trackingState: gate.state, phase: currentPhase)
             showSkeleton = false
             coachingBanner = gate.coachingMessage
             feedbackMessage = ""
@@ -327,8 +361,10 @@ final class Phase0ViewModel: ObservableObject {
             timestamp: raw.timestamp
         )
         latestSmoothedPose = smoothed
-        let gate = trackingGate.update(pose: smoothed)
+        let secondsSinceStartup = sessionStartTime.map { raw.timestamp - $0.timeIntervalSince1970 }
+        let gate = trackingGate.update(pose: smoothed, secondsSinceStartup: secondsSinceStartup)
         trackingState = gate.state
+        diagnosticsCollector.recordFrame(pose: smoothed, trackingState: gate.state, phase: currentPhase)
 
         switch gate.state {
         case .lost:
@@ -464,6 +500,9 @@ final class Phase0ViewModel: ObservableObject {
     }
 
     private func addDebug(_ message: String) {
+        if debugMessages.last?.hasSuffix(message) == true {
+            return
+        }
         let timestamp = String(format: "%.1f", Date.now.timeIntervalSince1970.truncatingRemainder(dividingBy: 1000))
         debugMessages.append("[F\(processedFrameCount) t\(timestamp)] \(message)")
         if debugMessages.count > 200 {
@@ -490,6 +529,7 @@ final class Phase0ViewModel: ObservableObject {
         }
         addDebug("Selected provider: \(provider.providerType.rawValue)")
         updateCameraStartupPhase(.configuringSession, log: "Configuring capture session")
+        diagnosticsCollector.noteCameraEvent("startup provider=\(provider.providerType.rawValue)")
 
         // Wire callbacks before capture starts so the first frames aren't dropped.
         cameraManager.onPoseResult = { [weak self] result in
@@ -504,6 +544,7 @@ final class Phase0ViewModel: ObservableObject {
                 if self.startupAttemptID == attemptID, self.cameraStartupPhase == .configuringSession {
                     self.cancelStartupWatchdog()
                     self.updateCameraStartupPhase(.running, log: "First frame processed — camera running")
+                    self.diagnosticsCollector.noteCameraSuccess()
                 }
                 self.processedFrameCount += 1
                 self.updateFPS()
@@ -512,6 +553,7 @@ final class Phase0ViewModel: ObservableObject {
         cameraManager.onStartupEvent = { [weak self] message in
             Task { @MainActor [weak self] in
                 self?.addDebug(message)
+                self?.diagnosticsCollector.noteCameraEvent(message)
             }
         }
         startStartupWatchdog(for: attemptID)
@@ -524,7 +566,8 @@ final class Phase0ViewModel: ObservableObject {
                     self.cancelStartupWatchdog()
                     self.updateCameraStartupPhase(.failed, log: "Camera setup failed: \(error.localizedDescription)")
                     self.cameraManager.clearOutputCallbacks()
-                    self.cameraErrorMessage = error.localizedDescription
+                    self.diagnosticsCollector.noteCameraFailure(error.localizedDescription)
+                    self.cameraErrorMessage = "Camera unavailable. \(error.localizedDescription) Try Again will fully reset the capture session before retrying."
                 } else {
                     self.addDebug("Capture session configured — waiting for first frame")
                 }
@@ -540,7 +583,8 @@ final class Phase0ViewModel: ObservableObject {
                 guard let self else { return }
                 guard self.startupAttemptID == attemptID, self.cameraStartupPhase == .configuringSession else { return }
                 self.cameraManager.clearOutputCallbacks()
-                self.cameraErrorMessage = "The camera did not start in time. This usually means the capture session stalled during startup."
+                self.diagnosticsCollector.noteCameraFailure("startup_timeout")
+                self.cameraErrorMessage = "The camera did not start in time. This usually means the capture session stalled during startup. Try Again will reset the camera pipeline."
                 self.updateCameraStartupPhase(.failed, log: "Camera startup timed out after 8 seconds")
             }
         }
@@ -653,7 +697,7 @@ struct Phase0TestView: View {
             }
             Button("Try Again") {
                 viewModel.cameraErrorMessage = nil
-                viewModel.startCamera()
+                viewModel.retryCameraStart()
             }
             Button("Cancel", role: .cancel) { viewModel.cameraErrorMessage = nil }
         } message: {
@@ -695,17 +739,10 @@ struct Phase0TestView: View {
                 .padding(.top, NKSpacing.section)
 
                 VStack(spacing: NKSpacing.md) {
-                    checklistItem(icon: "iphone", text: "Phone against wall, screen facing you", checked: true)
-                    checklistItem(icon: "arrow.up", text: "Portrait orientation", checked: true)
-                    checklistItem(icon: "figure.strengthtraining.traditional", text: "2–3 feet back in pushup position", checked: false)
-                    checklistItem(icon: "light.max", text: "Bright lighting, upper body visible", checked: false)
-                }
-                .padding(.horizontal, NKSpacing.xl)
-                .padding(.top, NKSpacing.xxxl)
-
-                HStack(spacing: NKSpacing.lg) {
-                    settingIcon(icon: "camera.fill", label: "FRONT CAMERA")
-                    settingIcon(icon: "light.max", label: "BRIGHT LIGHTING")
+                    setupStepRow(icon: "iphone", title: "Place Your Phone", text: "Lean it against a wall, screen facing you.")
+                    setupStepRow(icon: "iphone.gen3.radiowaves.left.and.right", title: "Keep It Portrait", text: "Stand it upright, not sideways.")
+                    setupStepRow(icon: "figure.strengthtraining.traditional", title: "Step Back", text: "Set up 2–3 feet away in plank.")
+                    setupStepRow(icon: "light.max", title: "Light The Scene", text: "Keep your upper body clearly lit.")
                 }
                 .padding(.horizontal, NKSpacing.xl)
                 .padding(.top, NKSpacing.xxl)
@@ -733,7 +770,7 @@ struct Phase0TestView: View {
                         .stroke(Color.nkPrimary.opacity(0.1), lineWidth: 1)
                 )
                 .padding(.horizontal, NKSpacing.xl)
-                .padding(.top, NKSpacing.xxl)
+                .padding(.top, NKSpacing.xl)
 
                 VStack(spacing: NKSpacing.md) {
                     Button {
@@ -786,28 +823,28 @@ struct Phase0TestView: View {
         .nkPageBackground()
     }
 
-    private func checklistItem(icon: String, text: String, checked: Bool) -> some View {
+    private func setupStepRow(icon: String, title: String, text: String) -> some View {
         HStack(spacing: NKSpacing.lg) {
             ZStack {
-                RoundedRectangle(cornerRadius: 4)
-                    .fill(checked ? Color.nkPrimary.opacity(0.1) : Color.nkSurfaceContainerHighest)
-                    .frame(width: 20, height: 20)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 4)
-                            .stroke(checked ? Color.nkPrimary.opacity(0.3) : Color.nkOutlineVariant.opacity(0.3), lineWidth: 1)
-                    )
-                if checked {
-                    Image(systemName: "checkmark")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(Color.nkPrimary)
-                }
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(Color.nkPrimary.opacity(0.12))
+                    .frame(width: 44, height: 44)
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(Color.nkPrimary)
             }
-            Text(text)
-                .font(.nkBodyMD)
-                .foregroundStyle(Color.nkOnSurface)
+            VStack(alignment: .leading, spacing: NKSpacing.micro) {
+                Text(title)
+                    .font(.nkTitleSM)
+                    .foregroundStyle(Color.nkOnSurface)
+                Text(text)
+                    .font(.nkBodyMD)
+                    .foregroundStyle(Color.nkOnSurfaceVariant)
+            }
             Spacer()
         }
-        .padding(NKSpacing.lg)
+        .padding(.horizontal, NKSpacing.lg)
+        .padding(.vertical, NKSpacing.md)
         .background(Color.nkSurfaceContainerLow)
         .clipShape(RoundedRectangle(cornerRadius: 8))
         .overlay(
@@ -815,23 +852,7 @@ struct Phase0TestView: View {
                 .stroke(Color.nkOutlineVariant.opacity(0.05), lineWidth: 1)
         )
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("\(text): \(checked ? "ready" : "pending")")
-    }
-
-    private func settingIcon(icon: String, label: String) -> some View {
-        VStack(spacing: NKSpacing.md) {
-            Image(systemName: icon)
-                .font(.system(size: 24))
-                .foregroundStyle(Color.nkPrimary)
-            Text(label)
-                .font(.nkLabelXS)
-                .tracking(1.5)
-                .textCase(.uppercase)
-                .foregroundStyle(Color.nkOnSurface)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(NKSpacing.xl)
-        .nkCardElevated()
+        .accessibilityLabel("\(title). \(text)")
     }
 
     // MARK: - Camera + Tracking
@@ -853,11 +874,11 @@ struct Phase0TestView: View {
                             .tracking(1)
                             .foregroundStyle(Color.nkOnSurface)
                     }
-                    .padding(.horizontal, NKSpacing.xxl)
-                    .padding(.vertical, NKSpacing.xl)
-                    .background(Color.nkSurface.opacity(0.85))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .nkAmbientGlow()
+                .padding(.horizontal, NKSpacing.xxl)
+                .padding(.vertical, NKSpacing.xl)
+                .background(Color.black.opacity(0.58))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
+                .nkAmbientGlow()
                 }
 
                 LandmarkOverlayView(
@@ -942,7 +963,11 @@ struct Phase0TestView: View {
                 .padding(.horizontal, NKSpacing.xl)
                 .padding(.vertical, NKSpacing.md)
                 .frame(maxWidth: .infinity)
-                .background(Color.nkPrimary.opacity(0.1))
+                .background(.ultraThinMaterial)
+                .overlay {
+                    RoundedRectangle(cornerRadius: 0)
+                        .fill(Color.black.opacity(0.18))
+                }
                 .overlay(alignment: .leading) {
                     Rectangle()
                         .fill(Color.nkPrimary)
@@ -975,7 +1000,7 @@ struct Phase0TestView: View {
                 trackingIndicator("DISTANCE", ok: viewModel.distanceOK)
             }
             .padding(NKSpacing.md)
-            .background(Color.nkSurface.opacity(0.7))
+            .background(Color.black.opacity(0.52))
             .clipShape(RoundedRectangle(cornerRadius: 8))
 
             Spacer()
@@ -994,7 +1019,7 @@ struct Phase0TestView: View {
             }
             .padding(.horizontal, NKSpacing.md)
             .padding(.vertical, NKSpacing.sm)
-            .background(Color.nkSurfaceContainerHighest.opacity(0.7))
+            .background(Color.black.opacity(0.52))
             .clipShape(RoundedRectangle(cornerRadius: 8))
         }
     }
@@ -1087,39 +1112,52 @@ struct Phase0TestView: View {
                     viewModel.resetSession()
                     viewModel.startCamera()
                 } label: {
-                    Image(systemName: "arrow.counterclockwise")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(Color.nkOnSurface)
-                        .frame(width: 52, height: 52)
-                        .background(Color.nkSurfaceContainerHigh)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.nkOutlineVariant.opacity(0.15), lineWidth: 1)
-                        )
+                    smallActionButtonLabel(
+                        icon: "arrow.counterclockwise",
+                        title: "Restart",
+                        subtitle: "Reset reps"
+                    )
                 }
-                .accessibilityLabel("Reset session")
+                .buttonStyle(.plain)
+                .accessibilityLabel("Restart session")
                 .accessibilityHint("Clears rep count and restarts tracking")
 
                 #if DEBUG
                 Button {
                     viewModel.switchProvider()
                 } label: {
-                    Image(systemName: "arrow.triangle.2.circlepath")
-                        .font(.system(size: 16, weight: .medium))
-                        .foregroundStyle(Color.nkOnSurface)
-                        .frame(width: 52, height: 52)
-                        .background(Color.nkSurfaceContainerHigh)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.nkOutlineVariant.opacity(0.15), lineWidth: 1)
-                        )
+                    smallActionButtonLabel(
+                        icon: "waveform.path.ecg.rectangle",
+                        title: "Mode",
+                        subtitle: "Debug"
+                    )
                 }
-                .accessibilityLabel("Switch pose provider")
+                .buttonStyle(.plain)
+                .accessibilityLabel("Switch debug pose mode")
                 #endif
             }
         }
+    }
+
+    private func smallActionButtonLabel(icon: String, title: String, subtitle: String) -> some View {
+        VStack(spacing: 4) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(Color.nkOnSurface)
+            Text(title)
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(Color.nkOnSurface)
+            Text(subtitle)
+                .font(.system(size: 9, weight: .medium))
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+        }
+        .frame(width: 74, height: 58)
+        .background(Color.black.opacity(0.52))
+        .clipShape(RoundedRectangle(cornerRadius: 10))
+        .overlay(
+            RoundedRectangle(cornerRadius: 10)
+                .stroke(Color.white.opacity(0.08), lineWidth: 1)
+        )
     }
 
     // MARK: - Summary

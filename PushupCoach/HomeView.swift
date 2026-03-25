@@ -78,11 +78,6 @@ struct HomeView: View {
             .fullScreenCover(isPresented: $showWorkout) {
                 Phase0TestView()
             }
-            .navigationDestination(for: UUID.self) { sessionID in
-                if let session = sessions.first(where: { $0.id == sessionID }) {
-                    SessionDetailView(session: session)
-                }
-            }
         }
         .preferredColorScheme(.dark)
     }
@@ -138,7 +133,7 @@ struct HomeView: View {
                     Text("On-Device AI")
                         .font(.nkTitleSM)
                         .foregroundStyle(Color.nkOnSurface)
-                    Text("MediaPipe pose detection — zero cloud processing")
+                    Text("PushXPose detection — zero cloud processing")
                         .font(.nkLabelXS)
                         .foregroundStyle(Color.nkOnSurfaceVariant)
                 }
@@ -321,7 +316,9 @@ struct HomeView: View {
 
             VStack(spacing: NKSpacing.md) {
                 ForEach(sessions.prefix(3), id: \.id) { session in
-                    NavigationLink(value: session.id) {
+                    NavigationLink {
+                        SessionDetailView(session: session)
+                    } label: {
                         sessionRow(session)
                     }
                     .buttonStyle(.plain)

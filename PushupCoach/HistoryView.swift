@@ -33,11 +33,6 @@ struct HistoryView: View {
         .nkPageBackground()
         .navigationTitle("History")
         .navigationBarTitleDisplayMode(.inline)
-        .navigationDestination(for: UUID.self) { sessionID in
-            if let session = sessions.first(where: { $0.id == sessionID }) {
-                SessionDetailView(session: session)
-            }
-        }
         .overlay(alignment: .bottom) {
             if copiedAllToast {
                 toastView
@@ -98,7 +93,9 @@ struct HistoryView: View {
     private var sessionsList: some View {
         LazyVStack(spacing: NKSpacing.md) {
             ForEach(sessions, id: \.id) { session in
-                NavigationLink(value: session.id) {
+                NavigationLink {
+                    SessionDetailView(session: session)
+                } label: {
                     sessionRow(session)
                 }
                 .buttonStyle(.plain)
@@ -119,7 +116,7 @@ struct HistoryView: View {
                     Text("\(session.repCount) REPS")
                         .nkTechnicalLabel()
 
-                    Text(session.providerType.uppercased())
+                    Text(session.providerDisplayName.uppercased())
                         .font(.nkLabelXS)
                         .tracking(0.8)
                         .foregroundStyle(Color.nkOnSurfaceVariant.opacity(0.7))

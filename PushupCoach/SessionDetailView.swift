@@ -52,7 +52,7 @@ struct SessionDetailView: View {
 
             HStack(spacing: NKSpacing.md) {
                 metricPill("DURATION", formatDuration(session.durationSeconds))
-                metricPill("PROVIDER", session.providerType.uppercased())
+                metricPill("PROVIDER", session.providerDisplayName.uppercased())
                 if let avg = session.averageRepDuration {
                     metricPill("AVG/REP", String(format: "%.1fs", avg))
                 }

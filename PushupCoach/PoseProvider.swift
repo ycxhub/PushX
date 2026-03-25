@@ -3,6 +3,14 @@ import CoreGraphics
 import ImageIO
 import simd
 
+enum DistanceAssessment: String, Sendable, Codable {
+    case unavailable
+    case tooClose
+    case tooFar
+    case usable
+    case ideal
+}
+
 enum LandmarkType: String, CaseIterable, Sendable {
     // Upper body (supported by both Apple Vision and MediaPipe)
     case nose
@@ -83,33 +91,97 @@ struct PoseResult: Sendable {
         landmarks.contains { $0.confidence > 0.15 }
     }
 
+    private static let headLandmarkTypes: [LandmarkType] = [
+        .nose,
+        .leftEye, .rightEye,
+        .leftEyeInner, .leftEyeOuter,
+        .rightEyeInner, .rightEyeOuter,
+        .leftEar, .rightEar,
+        .mouthLeft, .mouthRight,
+    ]
+
+    private var visibleHeadLandmarks: [Landmark] {
+        Self.headLandmarkTypes.compactMap(landmark).filter { $0.confidence >= 0.18 }
+    }
+
+    /// Stable head/neck proxy used for gating and rep tracking. This deliberately does not rely on the
+    /// nose alone because users frequently look at the phone during the first rep.
+    var headReferenceY: CGFloat? {
+        let visible = visibleHeadLandmarks
+        guard !visible.isEmpty else { return nil }
+        let sorted = visible.map(\.position.y).sorted()
+        return sorted[sorted.count / 2]
+    }
+
+    var headVisibilityScore: Double {
+        let visible = visibleHeadLandmarks
+        guard !visible.isEmpty else { return 0 }
+        let total = visible.reduce(0.0) { $0 + Double($1.confidence) }
+        return total / Double(visible.count)
+    }
+
+    var hasRepCountingAnchorLandmarks: Bool {
+        let leftShoulder = landmark(.leftShoulder)?.confidence ?? 0
+        let rightShoulder = landmark(.rightShoulder)?.confidence ?? 0
+        guard leftShoulder >= 0.24 || rightShoulder >= 0.24 else { return false }
+
+        let armVisible: Bool = [.leftElbow, .rightElbow, .leftWrist, .rightWrist].contains {
+            (landmark($0)?.confidence ?? 0) >= 0.18
+        }
+        let hipsVisible = (landmark(.leftHip)?.confidence ?? 0) >= 0.18 || (landmark(.rightHip)?.confidence ?? 0) >= 0.18
+        return armVisible || hipsVisible || headReferenceY != nil
+    }
+
     /// Nose + at least ONE shoulder at moderate confidence.
     var hasCoreLandmarksForTracking: Bool {
-        guard let nose = landmark(.nose), nose.confidence >= 0.25 else { return false }
         let ls = landmark(.leftShoulder)
         let rs = landmark(.rightShoulder)
         let leftOK = (ls?.confidence ?? 0) >= 0.2
         let rightOK = (rs?.confidence ?? 0) >= 0.2
-        return leftOK || rightOK
+        guard leftOK || rightOK else { return false }
+        return headReferenceY != nil || hasRepCountingAnchorLandmarks
     }
 
     var isBodyDetected: Bool {
         hasCoreLandmarksForTracking
     }
 
+    var shoulderMidYForTracking: CGFloat? {
+        guard let left = landmark(.leftShoulder),
+              let right = landmark(.rightShoulder),
+              left.confidence >= 0.18,
+              right.confidence >= 0.18 else { return nil }
+        return (left.position.y + right.position.y) * 0.5
+    }
+
+    var hipMidYForTracking: CGFloat? {
+        guard let left = landmark(.leftHip),
+              let right = landmark(.rightHip),
+              left.confidence >= 0.16,
+              right.confidence >= 0.16 else { return nil }
+        return (left.position.y + right.position.y) * 0.5
+    }
+
     /// Strong enough core keypoints to drive the **rep state machine** (blocks wall hallucinations).
     var isRepCountingQualityPose: Bool {
-        guard let nose = landmark(.nose), nose.confidence >= 0.5 else { return false }
         guard let ls = landmark(.leftShoulder), let rs = landmark(.rightShoulder),
-              ls.confidence >= 0.38, rs.confidence >= 0.38 else { return false }
-        return true
+              ls.confidence >= 0.32, rs.confidence >= 0.32 else { return false }
+        let elbowsOrWristsVisible =
+            (landmark(.leftElbow)?.confidence ?? 0) >= 0.16 ||
+            (landmark(.rightElbow)?.confidence ?? 0) >= 0.16 ||
+            (landmark(.leftWrist)?.confidence ?? 0) >= 0.16 ||
+            (landmark(.rightWrist)?.confidence ?? 0) >= 0.16
+        let hipsVisible =
+            (landmark(.leftHip)?.confidence ?? 0) >= 0.16 &&
+            (landmark(.rightHip)?.confidence ?? 0) >= 0.16
+        return headReferenceY != nil || elbowsOrWristsVisible || hipsVisible
     }
 
     var isCalibratedForPushup: Bool {
         guard hasCoreLandmarksForTracking else { return false }
-        guard isDistanceOK else { return false }
-        guard hasArmExtensionHintForCalibration else { return false }
-        return true
+        guard distanceAssessment == .ideal || distanceAssessment == .usable else { return false }
+        guard hasArmExtensionHintForCalibration || hasRepCountingAnchorLandmarks else { return false }
+        return isPushupLikeBodyOrientation
     }
 
     /// Core landmarks plus a visible arm hint at checklist threshold (UI dots).
@@ -161,8 +233,7 @@ struct PoseResult: Sendable {
 
     /// Calibration distance band (stricter).
     var isDistanceOK: Bool {
-        guard let span = shoulderSpanForCalibrationMetric else { return false }
-        return span >= PushupPoseConstants.shoulderSpanCalibrateMin && span <= PushupPoseConstants.shoulderSpanCalibrateMax
+        distanceAssessment == .ideal
     }
 
     /// Pre-lock gate band (looser).
@@ -171,30 +242,55 @@ struct PoseResult: Sendable {
         return span >= PushupPoseConstants.shoulderSpanGateMin && span <= PushupPoseConstants.shoulderSpanGateMax
     }
 
+    var distanceAssessment: DistanceAssessment {
+        guard let span = shoulderSpanForCalibrationMetric else { return .unavailable }
+        if span < PushupPoseConstants.shoulderSpanUsableMin { return .tooFar }
+        if span > PushupPoseConstants.shoulderSpanUsableMax { return .tooClose }
+        if span < PushupPoseConstants.shoulderSpanCalibrateMin || span > PushupPoseConstants.shoulderSpanCalibrateMax {
+            return .usable
+        }
+        return .ideal
+    }
+
+    var isPushupLikeBodyOrientation: Bool {
+        guard !isStandingPose else { return false }
+        guard let trunkAngle = trunkAngleFromVertical,
+              trunkAngle >= PushupPoseConstants.minTrunkAngleForPushup else { return false }
+
+        guard let ls = landmark(.leftShoulder), let rs = landmark(.rightShoulder),
+              ls.confidence >= 0.2, rs.confidence >= 0.2 else { return false }
+        let shoulderMidY = (ls.position.y + rs.position.y) * 0.5
+
+        if let lh = landmark(.leftHip), let rh = landmark(.rightHip),
+           lh.confidence >= 0.18, rh.confidence >= 0.18 {
+            let hipMidY = (lh.position.y + rh.position.y) * 0.5
+            if hipMidY > shoulderMidY + 0.22 {
+                return false
+            }
+        }
+
+        if let headY = headReferenceY, headY < shoulderMidY - 0.14 {
+            return false
+        }
+
+        return true
+    }
+
     /// Phone-against-wall plank detection.
     ///
     /// Camera is at floor level looking horizontally at the user. In plank/pushup position the head
     /// hangs between or below the shoulders so `nose.y >= shoulderMidY` (y-down). When standing the
     /// nose is well above the shoulders and hips are far below — both rejected here.
     var isInPlankFromFrontCamera: Bool {
-        guard let nose = landmark(.nose), nose.confidence >= 0.4,
-              let ls = landmark(.leftShoulder), let rs = landmark(.rightShoulder),
-              ls.confidence >= 0.3, rs.confidence >= 0.3 else { return false }
+        guard isPushupLikeBodyOrientation else { return false }
+        guard let ls = landmark(.leftShoulder), let rs = landmark(.rightShoulder),
+              ls.confidence >= 0.25, rs.confidence >= 0.25 else { return false }
 
         let shoulderMidY = (ls.position.y + rs.position.y) * 0.5
-
-        let noseAtOrBelowShoulders = nose.position.y >= shoulderMidY - 0.05
-        guard noseAtOrBelowShoulders else { return false }
-
-        if let lh = landmark(.leftHip), let rh = landmark(.rightHip),
-           lh.confidence >= 0.25, rh.confidence >= 0.25 {
-            let hipMidY = (lh.position.y + rh.position.y) * 0.5
-            if hipMidY > shoulderMidY + 0.15 {
-                return false
-            }
+        if let headY = headReferenceY {
+            return headY >= shoulderMidY - 0.12
         }
-
-        return true
+        return hasRepCountingAnchorLandmarks
     }
 
     /// Explicit standing rejection — hips far below shoulders with nose above them.
@@ -215,7 +311,7 @@ struct PoseResult: Sendable {
 
     /// Ready to arm reps from idle: calibration checks pass and user is in plank position.
     var isPostureReadyForRepCounting: Bool {
-        isCalibratedForPushup && isInPlankFromFrontCamera
+        hasRepCountingAnchorLandmarks && isInPlankFromFrontCamera && (distanceAssessment == .ideal || distanceAssessment == .usable)
     }
 
     /// Live shoulder imbalance for HUD (meters in world space when available, else normalized 2D).
@@ -264,6 +360,15 @@ struct PoseResult: Sendable {
 enum PoseProviderType: String, CaseIterable, Sendable {
     case appleVision = "Apple Vision"
     case mediaPipe = "MediaPipe"
+
+    var publicFacingName: String {
+        switch self {
+        case .appleVision:
+            return "PushXPose"
+        case .mediaPipe:
+            return "PushXPose"
+        }
+    }
 }
 
 protocol PoseProvider: AnyObject {

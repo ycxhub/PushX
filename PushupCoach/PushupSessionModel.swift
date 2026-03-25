@@ -16,6 +16,8 @@ final class PushupSession {
     var improvements: [String]
     var providerType: String
     var debugLog: String
+    var sessionDiagnosticsJSON: String
+    var exportSchemaVersion: Int
 
     @Relationship(deleteRule: .cascade, inverse: \PushupRepRecord.session)
     var reps: [PushupRepRecord]
@@ -32,7 +34,9 @@ final class PushupSession {
         improvements: [String] = [],
         providerType: String,
         reps: [PushupRepRecord] = [],
-        debugLog: String = ""
+        debugLog: String = "",
+        sessionDiagnosticsJSON: String = "",
+        exportSchemaVersion: Int = 2
     ) {
         self.id = id
         self.startedAt = startedAt
@@ -46,6 +50,8 @@ final class PushupSession {
         self.providerType = providerType
         self.reps = reps
         self.debugLog = debugLog
+        self.sessionDiagnosticsJSON = sessionDiagnosticsJSON
+        self.exportSchemaVersion = exportSchemaVersion
     }
 
     var durationSeconds: TimeInterval {
@@ -59,5 +65,12 @@ final class PushupSession {
 
     var hasScores: Bool {
         compositeScore != nil
+    }
+
+    var providerDisplayName: String {
+        if providerType == PoseProviderType.mediaPipe.rawValue || providerType == PoseProviderType.appleVision.rawValue {
+            return "PushXPose"
+        }
+        return providerType
     }
 }
