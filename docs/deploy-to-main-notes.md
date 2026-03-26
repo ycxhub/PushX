@@ -175,3 +175,22 @@ _Complexity:_ `git diff 8ae9ab5 f014630 --numstat`: 19 files, 841 insertions + 1
 2. `privacy-policy/pushx/pushx-app-icon-1024.png` — binary (new file)
 
 _Complexity:_ `git show b7ec597 --numstat`: 2 files, 47 insertions + 34 deletions → **Medium** (50–200 lines AND < 10 files).
+
+## #10 — Launch assets, app flow upgrades, and archive signing hardening [High]
+
+**Date & time (IST):** 26 Mar 2026, 20:57
+
+**Deployment notes**
+
+- **New features:** launch background/icon/splash asset sets + image binaries; richer persisted session data model (`PushupSessionModel`); archive fix helper script for vendor framework plist/dSYM/codesign handling
+- **Feature enhancements:** substantial UX and state-flow updates across `PushXApp`, `HomeView`, `SessionDetailView`, `HistoryView`, and `Phase0TestView`; design system and form-scoring refinements
+- **Bug fixes:** improved session/form handling reliability and archive-time framework metadata/signing hardening to reduce App Store validation/symbol upload issues
+- **GitHub:** pushed `main` (`597084d`). **Vercel:** native iOS project; nothing to deploy on Vercel from this push
+
+**3 files with largest changes (by lines changed)**
+
+1. `PushupCoach/Phase0TestView.swift` — 233 lines (167 insertions, 66 deletions)
+2. `PushupCoach/PushXApp.swift` — 189 lines (188 insertions, 1 deletion)
+3. `PushupCoach/PushupSessionModel.swift` — 99 lines (99 insertions)
+
+_Complexity:_ `git show HEAD --numstat`: 19 files, 894 insertions + 126 deletions → **High** (> 200 lines).
