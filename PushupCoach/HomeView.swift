@@ -14,6 +14,9 @@ struct HomeView: View {
         guard !scored.isEmpty else { return nil }
         return scored.reduce(0, +) / scored.count
     }
+    private var bestRepCount: Int { sessions.map(\.repCount).max() ?? 0 }
+    private var bestScore: Int? { sessions.compactMap(\.compositeScore).max() }
+    private var latestInsights: [String] { sessions.first?.quickCoachInsights ?? [] }
     private var currentStreak: Int {
         guard !sessions.isEmpty else { return 0 }
         let cal = Calendar.current
@@ -66,6 +69,10 @@ struct HomeView: View {
                         recentSessions
                             .padding(.horizontal, NKSpacing.xl)
                             .padding(.top, NKSpacing.section)
+
+                        coachSnapshot
+                            .padding(.horizontal, NKSpacing.xl)
+                            .padding(.top, NKSpacing.section)
                     }
 
                     setupTips
@@ -91,17 +98,21 @@ struct HomeView: View {
                 .tracking(3)
                 .foregroundStyle(Color.nkPrimary)
             Spacer()
-            NavigationLink {
-                HistoryView()
-            } label: {
-                Image(systemName: "clock.arrow.circlepath")
-                    .font(.system(size: 18, weight: .medium))
+            VStack(alignment: .trailing, spacing: 2) {
+                Text("STREAK")
+                    .font(.nkLabelXS)
+                    .tracking(1.2)
+                    .foregroundStyle(Color.nkOutline)
+                Text("\(currentStreak) days")
+                    .font(.system(size: 15, weight: .heavy))
                     .foregroundStyle(Color.nkPrimary)
-                    .frame(width: 40, height: 40)
-                    .background(Color.nkPrimary.opacity(0.1))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .monospacedDigit()
             }
-            .accessibilityLabel("View workout history")
+            .padding(.horizontal, NKSpacing.md)
+            .padding(.vertical, NKSpacing.sm)
+            .background(Color.nkSurfaceContainerLow)
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary)
         }
     }
 
@@ -141,6 +152,7 @@ struct HomeView: View {
             .padding(NKSpacing.lg)
             .frame(maxWidth: .infinity, alignment: .leading)
             .nkCardElevated()
+            .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary)
         }
     }
 
@@ -169,10 +181,10 @@ struct HomeView: View {
             Spacer()
 
             VStack(alignment: .trailing, spacing: NKSpacing.micro) {
-                Text("TOTAL VOLUME")
+                Text("PERSONAL BEST")
                     .nkTechnicalLabel()
                 HStack(alignment: .firstTextBaseline, spacing: NKSpacing.micro) {
-                    Text("\(totalReps)")
+                    Text("\(bestRepCount)")
                         .font(.system(size: 24, weight: .bold))
                         .monospacedDigit()
                         .foregroundStyle(Color.nkOnSurface)
@@ -181,7 +193,7 @@ struct HomeView: View {
                         .foregroundStyle(Color.nkOutline)
                 }
                 .accessibilityElement(children: .combine)
-                .accessibilityLabel("Total volume: \(totalReps) reps")
+                .accessibilityLabel("Personal best: \(bestRepCount) reps")
             }
         }
     }
@@ -241,6 +253,7 @@ struct HomeView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.nkOutlineVariant.opacity(0.1), lineWidth: 1)
         )
+        .nkSelectiveGlass(cornerRadius: 12)
     }
 
     // MARK: - Stats Grid (Bento)
@@ -271,6 +284,7 @@ struct HomeView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(NKSpacing.xl)
         .nkCardElevated()
+        .nkSelectiveGlass(cornerRadius: 12)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label): \(value)")
     }
@@ -339,9 +353,12 @@ struct HomeView: View {
                     .font(.nkTitleSM)
                     .textCase(.uppercase)
                     .foregroundStyle(Color.nkOnSurface)
-                Text(session.startedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
-                    .font(.nkLabelXS)
+                Text(session.relativeDayLabel)
+                    .font(.nkLabelSM)
                     .textCase(.uppercase)
+                    .foregroundStyle(Color.nkOnSurfaceVariant)
+                Text(session.timeLabel)
+                    .font(.nkLabelXS)
                     .foregroundStyle(Color.nkOutline)
             }
 
@@ -369,6 +386,38 @@ struct HomeView: View {
         .padding(.vertical, NKSpacing.md)
         .background(Color.nkSurfaceContainerLow)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .nkSelectiveGlass(cornerRadius: 8)
+    }
+
+    private var coachSnapshot: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.lg) {
+            HStack {
+                Text("QUICK COACH")
+                    .nkPrimaryLabel()
+                Spacer()
+                if let bestScore {
+                    Text("BEST SCORE \(bestScore)")
+                        .nkTechnicalLabel()
+                }
+            }
+
+            VStack(alignment: .leading, spacing: NKSpacing.md) {
+                ForEach(latestInsights, id: \.self) { insight in
+                    HStack(alignment: .top, spacing: NKSpacing.md) {
+                        Image(systemName: "bolt.fill")
+                            .font(.system(size: 12, weight: .bold))
+                            .foregroundStyle(Color.nkPrimary)
+                            .frame(width: 16)
+                        Text(insight)
+                            .font(.nkBodyMD)
+                            .foregroundStyle(Color.nkOnSurface)
+                    }
+                }
+            }
+        }
+        .padding(NKSpacing.xl)
+        .nkCardElevated()
+        .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary)
     }
 
     // MARK: - Setup Tips
@@ -386,10 +435,9 @@ struct HomeView: View {
             }
 
             VStack(alignment: .leading, spacing: NKSpacing.md) {
-                tipRow(icon: "iphone", text: "Lean phone against a wall, screen facing you")
-                tipRow(icon: "arrow.up", text: "Portrait orientation — tall, not sideways")
-                tipRow(icon: "figure.strengthtraining.traditional", text: "Step back 2–3 feet in pushup position")
-                tipRow(icon: "light.max", text: "Bright lighting, upper body fully visible")
+                tipRow(icon: "light.max", text: "Light the scene so your upper body is easy to see")
+                tipRow(icon: "iphone", text: "Place your phone upright against a wall")
+                tipRow(icon: "figure.strengthtraining.traditional", text: "Step back into plank, 2–3 feet away")
             }
         }
         .padding(NKSpacing.xl)
@@ -399,6 +447,7 @@ struct HomeView: View {
             RoundedRectangle(cornerRadius: 12)
                 .stroke(Color.nkPrimary.opacity(0.1), lineWidth: 1)
         )
+        .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary)
     }
 
     private func tipRow(icon: String, text: String) -> some View {

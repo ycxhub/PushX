@@ -142,6 +142,29 @@ extension View {
     func nkPageBackground() -> some View {
         self.background(Color.nkSurface.ignoresSafeArea())
     }
+
+    @ViewBuilder
+    func nkSelectiveGlass(cornerRadius: CGFloat = 12, tint: Color? = nil, tintStrength: Double = 0.18) -> some View {
+        if #available(iOS 26.0, *) {
+            if let tint {
+                self
+                    .glassEffect(.regular.tint(tint.opacity(tintStrength)), in: .rect(cornerRadius: cornerRadius))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+            } else {
+                self
+                    .glassEffect(.regular, in: .rect(cornerRadius: cornerRadius))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                    )
+            }
+        } else {
+            self
+        }
+    }
 }
 
 // MARK: - Score Theming
@@ -172,10 +195,11 @@ struct NKPrimaryButtonStyle: ButtonStyle {
             .tracking(2)
             .foregroundStyle(Color.nkOnPrimaryContainer)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 20)
-            .background(LinearGradient.kineticGradient)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .shadow(color: .nkPrimaryContainer.opacity(0.15), radius: 16, y: 8)
+            .padding(.vertical, NKSpacing.xl)
+            .background(LinearGradient.kineticGradient.opacity(configuration.isPressed ? 0.88 : 1.0))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimaryContainer, tintStrength: 0.42)
+            .shadow(color: .nkPrimaryContainer.opacity(0.18), radius: 14, y: 6)
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
     }
@@ -184,18 +208,15 @@ struct NKPrimaryButtonStyle: ButtonStyle {
 struct NKSecondaryButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .bold))
+            .font(.nkLabelSM)
             .textCase(.uppercase)
             .tracking(1.5)
             .foregroundStyle(Color.nkOnSurface)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 16)
-            .background(Color.nkSurfaceContainerHighest)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-            .overlay(
-                RoundedRectangle(cornerRadius: 8)
-                    .stroke(Color.nkOutlineVariant.opacity(0.15), lineWidth: 1)
-            )
+            .padding(.vertical, NKSpacing.lg)
+            .background(Color.nkSurfaceContainerHighest.opacity(configuration.isPressed ? 0.85 : 1.0))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary, tintStrength: 0.10)
             .scaleEffect(configuration.isPressed ? 0.97 : 1.0)
             .opacity(configuration.isPressed ? 0.8 : 1.0)
             .animation(.easeOut(duration: 0.15), value: configuration.isPressed)
@@ -205,12 +226,15 @@ struct NKSecondaryButtonStyle: ButtonStyle {
 struct NKGhostButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .font(.system(size: 13, weight: .bold))
+            .font(.nkLabelSM)
             .textCase(.uppercase)
             .tracking(1)
-            .foregroundStyle(Color.nkPrimary)
-            .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .foregroundStyle(Color.nkOnSurface)
+            .padding(.horizontal, NKSpacing.lg)
+            .padding(.vertical, NKSpacing.sm)
+            .background(Color.nkSurfaceContainerHighest.opacity(configuration.isPressed ? 0.85 : 1.0))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary, tintStrength: 0.14)
             .scaleEffect(configuration.isPressed ? 0.95 : 1.0)
             .opacity(configuration.isPressed ? 0.7 : 1.0)
             .animation(.easeOut(duration: 0.12), value: configuration.isPressed)

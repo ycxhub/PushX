@@ -108,23 +108,16 @@ struct HistoryView: View {
     private func sessionRow(_ session: PushupSession) -> some View {
         HStack(spacing: NKSpacing.md) {
             VStack(alignment: .leading, spacing: NKSpacing.xs) {
-                Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
+                Text(session.relativeDayLabel)
                     .font(.nkTitleSM)
                     .foregroundStyle(Color.nkOnSurface)
 
-                HStack(spacing: NKSpacing.sm) {
-                    Text("\(session.repCount) REPS")
-                        .nkTechnicalLabel()
+                Text(session.timeLabel)
+                    .font(.nkLabelXS)
+                    .foregroundStyle(Color.nkOutline)
 
-                    Text(session.providerDisplayName.uppercased())
-                        .font(.nkLabelXS)
-                        .tracking(0.8)
-                        .foregroundStyle(Color.nkOnSurfaceVariant.opacity(0.7))
-                        .padding(.horizontal, NKSpacing.sm)
-                        .padding(.vertical, NKSpacing.micro)
-                        .background(Color.nkSurfaceContainerHighest)
-                        .clipShape(RoundedRectangle(cornerRadius: 4))
-                }
+                Text("\(session.repCount) REPS")
+                    .nkTechnicalLabel()
             }
 
             Spacer()
@@ -167,6 +160,7 @@ struct HistoryView: View {
         .padding(.horizontal, NKSpacing.lg)
         .padding(.vertical, NKSpacing.md)
         .nkCardElevated()
+        .nkSelectiveGlass(cornerRadius: 12)
         .accessibilityElement(children: .combine)
         .accessibilityLabel(sessionAccessibilityLabel(session))
     }
@@ -210,7 +204,7 @@ struct HistoryView: View {
     // MARK: - Helpers
 
     private func sessionAccessibilityLabel(_ session: PushupSession) -> String {
-        var label = "\(session.repCount) reps on \(session.startedAt.formatted(date: .abbreviated, time: .shortened))"
+        var label = "\(session.repCount) reps on \(session.relativeDayLabel) at \(session.timeLabel)"
         if let score = session.compositeScore {
             label += ", score \(score) \(Color.nkScoreLabel(score))"
         }

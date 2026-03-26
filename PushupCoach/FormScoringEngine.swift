@@ -15,10 +15,12 @@ final class FormScoringEngine {
 
         let hasWorld = reps.first?.minWorldY != nil
         let depthScore = hasWorld ? computeDepthScoreWorld(reps) : computeDepthScore(reps)
-        let alignmentScore = hasWorld ? computeAlignmentScoreWorld(reps) : computeAlignmentScore(reps)
-        let consistencyScore = hasWorld ? computeConsistencyScoreWorld(reps) : computeConsistencyScore(reps)
+        let alignmentBase = hasWorld ? computeAlignmentScoreWorld(reps) : computeAlignmentScore(reps)
+        let alignmentScore = blendAlignmentScore(base: alignmentBase, reps: reps)
+        let consistencyBase = hasWorld ? computeConsistencyScoreWorld(reps) : computeConsistencyScore(reps)
+        let consistencyScore = blendConsistencyScore(base: consistencyBase, reps: reps)
 
-        let composite = Int(Double(depthScore) * 0.4 + Double(alignmentScore) * 0.3 + Double(consistencyScore) * 0.3)
+        let composite = Int(Double(depthScore) * 0.32 + Double(alignmentScore) * 0.38 + Double(consistencyScore) * 0.30)
         let improvements = generateImprovements(depth: depthScore, alignment: alignmentScore, consistency: consistencyScore, reps: reps, hasWorld: hasWorld)
 
         return FormScores(
@@ -28,6 +30,30 @@ final class FormScoringEngine {
             composite: composite,
             improvements: improvements
         )
+    }
+
+    private func blendAlignmentScore(base: Int, reps: [RepCountingEngine.RepMeasurement]) -> Int {
+        let hipPenalty = average(of: reps.compactMap(\.hipAsymmetry))
+            .map { max(0, 1 - min($0 / 0.06, 1)) * 100 }
+        let lockoutScore = average(of: reps.compactMap(\.topLockoutCompleteness))
+            .map { min(max($0, 0), 1) * 100 }
+        let headAlignmentScore = average(of: reps.compactMap(\.headAlignment).map { Double(min($0 / 35.0, 1.0)) })
+            .map { max(0, 1 - $0) * 100 }
+
+        let components = [Double(base), hipPenalty, lockoutScore, headAlignmentScore].compactMap { $0 }
+        guard !components.isEmpty else { return base }
+        return clampScore(components.reduce(0, +) / Double(components.count))
+    }
+
+    private func blendConsistencyScore(base: Int, reps: [RepCountingEngine.RepMeasurement]) -> Int {
+        let wobbleScore = average(of: reps.map { Double($0.wobbleEvents) })
+            .map { max(0, 1 - min($0 / 2.5, 1)) * 100 }
+        let lockoutCV = coefficientOfVariation(reps.compactMap(\.topLockoutCompleteness))
+        let lockoutScore = max(0, 1 - min(lockoutCV, 1)) * 100
+
+        let components = [Double(base), wobbleScore, lockoutScore].compactMap { $0 }
+        guard !components.isEmpty else { return base }
+        return clampScore(components.reduce(0, +) / Double(components.count))
     }
 
     // MARK: - Depth (screen-space)
@@ -174,13 +200,20 @@ final class FormScoringEngine {
         }
 
         if alignment < 80 {
-            suggestions.append((alignment, "Keep your shoulders level. One side may be dipping more than the other."))
+            let hipValues = reps.compactMap(\.hipAsymmetry)
+            if let averageHip = average(of: hipValues), averageHip > 0.03 {
+                suggestions.append((alignment, "Keep your hips quieter through the set. Your midline looks less stable than your shoulders."))
+            } else {
+                suggestions.append((alignment, "Keep your shoulders level. One side may be dipping more than the other."))
+            }
         }
 
         if consistency < 80 {
             let durations = reps.map { $0.durationSeconds }
             if let maxD = durations.max(), let minD = durations.min(), maxD > minD * 2.0 {
                 suggestions.append((consistency, "Your rep speed varies a lot. Try to keep a steady tempo throughout."))
+            } else if let averageWobble = average(of: reps.map { Double($0.wobbleEvents) }), averageWobble > 1 {
+                suggestions.append((consistency, "There is some wobble in the set. Slow the reps down slightly and stay braced through the floor."))
             } else {
                 suggestions.append((consistency, "Work on making each rep feel the same — same depth, same speed."))
             }
@@ -201,6 +234,11 @@ final class FormScoringEngine {
         guard mean > 0 else { return 0 }
         let variance = values.map { ($0 - mean) * ($0 - mean) }.reduce(0, +) / Double(values.count)
         return sqrt(variance) / mean
+    }
+
+    private func average(of values: [Double]) -> Double? {
+        guard !values.isEmpty else { return nil }
+        return values.reduce(0, +) / Double(values.count)
     }
 
     private func clampScore(_ value: Double) -> Int {

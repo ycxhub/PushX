@@ -8,12 +8,14 @@ struct SessionDetailView: View {
         ScrollView {
             VStack(spacing: NKSpacing.section) {
                 heroSection
+                highlightsSection
                 if session.hasScores {
                     kineticMetricsRow
                     scoresBentoGrid
                 } else {
                     noScoresSection
                 }
+                quickCoachSection
                 if !session.improvements.isEmpty {
                     improvementsSection
                 }
@@ -45,14 +47,16 @@ struct SessionDetailView: View {
                 .nkPrimaryLabel()
                 .accessibilityAddTraits(.isHeader)
 
-            Text(session.startedAt.formatted(date: .abbreviated, time: .shortened))
+            Text(session.relativeDayLabel)
+                .font(.nkHeadlineSM)
+                .foregroundStyle(Color.nkOnSurface)
+            Text(session.timeLabel)
                 .font(.nkBodyMD)
                 .foregroundStyle(Color.nkOnSurfaceVariant)
-                .accessibilityLabel("Session date: \(session.startedAt.formatted(date: .abbreviated, time: .shortened))")
+                .accessibilityLabel("Session time: \(session.timeLabel)")
 
             HStack(spacing: NKSpacing.md) {
                 metricPill("DURATION", formatDuration(session.durationSeconds))
-                metricPill("PROVIDER", session.providerDisplayName.uppercased())
                 if let avg = session.averageRepDuration {
                     metricPill("AVG/REP", String(format: "%.1fs", avg))
                 }
@@ -60,6 +64,30 @@ struct SessionDetailView: View {
             .padding(.top, NKSpacing.xs)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var highlightsSection: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.md) {
+            Text("SESSION HIGHLIGHTS")
+                .nkTechnicalLabel()
+                .padding(.leading, NKSpacing.micro)
+
+            VStack(alignment: .leading, spacing: NKSpacing.md) {
+                ForEach(session.sessionHighlights, id: \.self) { highlight in
+                    HStack(alignment: .top, spacing: NKSpacing.md) {
+                        Image(systemName: "sparkles")
+                            .font(.nkLabelSM)
+                            .foregroundStyle(Color.nkPrimary)
+                        Text(highlight)
+                            .font(.nkBodyMD)
+                            .foregroundStyle(Color.nkOnSurface)
+                    }
+                }
+            }
+            .padding(NKSpacing.xl)
+            .nkCardElevated()
+            .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary)
+        }
     }
 
     // MARK: - Kinetic Asymmetry: Rep Count + Form Score
@@ -104,6 +132,7 @@ struct SessionDetailView: View {
         .padding(NKSpacing.xl)
         .nkCardElevated()
         .nkAmbientGlow()
+        .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary)
     }
 
     // MARK: - Scores Bento Grid
@@ -156,6 +185,7 @@ struct SessionDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(NKSpacing.lg)
         .nkCard()
+        .nkSelectiveGlass(cornerRadius: 12)
     }
 
     private func scoreBar(value: Int) -> some View {
@@ -201,6 +231,31 @@ struct SessionDetailView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(NKSpacing.lg)
         .nkCard()
+        .nkSelectiveGlass(cornerRadius: 12)
+    }
+
+    private var quickCoachSection: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.md) {
+            Text("QUICK COACH")
+                .nkTechnicalLabel()
+                .padding(.leading, NKSpacing.micro)
+
+            VStack(alignment: .leading, spacing: NKSpacing.md) {
+                ForEach(session.quickCoachInsights, id: \.self) { insight in
+                    HStack(alignment: .top, spacing: NKSpacing.md) {
+                        Image(systemName: "bolt.fill")
+                            .font(.nkLabelSM)
+                            .foregroundStyle(Color.nkPrimary)
+                        Text(insight)
+                            .font(.nkBodyMD)
+                            .foregroundStyle(Color.nkOnSurface)
+                    }
+                }
+            }
+            .padding(NKSpacing.xl)
+            .nkCardElevated()
+            .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary)
+        }
     }
 
     // MARK: - No Scores
@@ -249,6 +304,7 @@ struct SessionDetailView: View {
                 }
                 .padding(NKSpacing.lg)
                 .nkCard()
+                .nkSelectiveGlass(cornerRadius: 8)
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel("Suggestion \(idx + 1): \(text)")
             }
@@ -300,6 +356,7 @@ struct SessionDetailView: View {
         .padding(.vertical, NKSpacing.md)
         .background(Color.nkSurfaceContainerLow)
         .clipShape(RoundedRectangle(cornerRadius: 8))
+        .nkSelectiveGlass(cornerRadius: 8)
         .accessibilityElement(children: .combine)
     }
 

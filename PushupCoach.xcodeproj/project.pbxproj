@@ -92,7 +92,7 @@
 			files = (
 				BPKG0000000000000000001 /* SwiftTasksVision in Frameworks */,
 			);
-			runOnlyForDeploymentPostprocessing = 0;
+			runOnlyForDeploymentPostprocessing = 1;
 		};
 /* End PBXFrameworksBuildPhase section */
 
@@ -243,15 +243,20 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(PROJECT_DIR)/scripts/fix_mediapipe_archive.sh",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Frameworks/MediaPipeTasksVision.framework/MediaPipeTasksVision",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Frameworks/MediaPipeCommonGraphLibraries.framework/MediaPipeCommonGraphLibraries",
 			);
 			name = "Fix MediaPipe Framework Plist";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Frameworks/MediaPipeTasksVision.framework/Info.plist",
+				"$(TARGET_BUILD_DIR)/$(WRAPPER_NAME)/Frameworks/MediaPipeCommonGraphLibraries.framework/Info.plist",
 			);
-			runOnlyForDeploymentPostprocessing = 0;
+			runOnlyForDeploymentPostprocessing = 1;
 			shellPath = /bin/sh;
-			shellScript = "for PLIST in \"${CODESIGNING_FOLDER_PATH}/Frameworks/MediaPipeTasksVision.framework/Info.plist\" \"${TARGET_BUILD_DIR}/${WRAPPER_NAME}/Frameworks/MediaPipeTasksVision.framework/Info.plist\" \"${BUILT_PRODUCTS_DIR}/${PRODUCT_NAME}.app/Frameworks/MediaPipeTasksVision.framework/Info.plist\"; do\n  if [ -f \"$PLIST\" ]; then\n    /usr/libexec/PlistBuddy -c \"Add :MinimumOSVersion string 13.0\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleShortVersionString string 1.0\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleVersion string 1\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleName string MediaPipeTasksVision\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleInfoDictionaryVersion string 6.0\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleSupportedPlatforms array\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Add :CFBundleSupportedPlatforms:0 string iPhoneOS\" \"$PLIST\" 2>/dev/null || true\n    /usr/libexec/PlistBuddy -c \"Set :CFBundlePackageType FMWK\" \"$PLIST\" 2>/dev/null || true\n    echo \"Patched: $PLIST\"\n  fi\ndone\n";
+			shellScript = "\"${PROJECT_DIR}/scripts/fix_mediapipe_archive.sh\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
@@ -303,6 +308,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				CURRENT_PROJECT_VERSION = 2;
 				INFOPLIST_FILE = PushupCoach/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = PushX;
@@ -331,6 +337,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = YES;
 				CODE_SIGN_STYLE = Automatic;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
 				CURRENT_PROJECT_VERSION = 2;
 				INFOPLIST_FILE = PushupCoach/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = PushX;

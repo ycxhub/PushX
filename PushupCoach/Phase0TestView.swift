@@ -1,6 +1,7 @@
 import SwiftUI
 import AVFoundation
 import UIKit
+import SwiftData
 
 enum CameraStartupPhase: Equatable {
     case idle
@@ -48,6 +49,7 @@ final class Phase0ViewModel: ObservableObject {
     @Published var repAnimToken: Int = 0
     @Published var cameraErrorMessage: String?
     @Published var processedFrameCount: Int = 0
+    @Published var isManualPauseEnabled = false
 
     @Published var bodyDetected: Bool = false
     @Published var landmarksVisible: Bool = false
@@ -182,6 +184,22 @@ final class Phase0ViewModel: ObservableObject {
         finishSessionAndStopCapture()
     }
 
+    func toggleManualPause() {
+        isManualPauseEnabled.toggle()
+        if isManualPauseEnabled {
+            coachingBanner = "Session paused"
+            feedbackMessage = ""
+            secondaryCoachingText = "Tap play when you're ready to continue."
+            overlayLandmarks = []
+            showSkeleton = false
+            currentPhase = .paused
+        } else {
+            coachingBanner = ""
+            secondaryCoachingText = ""
+            refreshWorkoutSubtitle()
+        }
+    }
+
     func retryCameraStart() {
         diagnosticsCollector.noteRetry()
         cameraErrorMessage = nil
@@ -260,6 +278,7 @@ final class Phase0ViewModel: ObservableObject {
         depthPercent = 0
         latestNoseY = 0
         processedFrameCount = 0
+        isManualPauseEnabled = false
         bodyDetected = false
         landmarksVisible = false
         distanceOK = false
@@ -329,6 +348,14 @@ final class Phase0ViewModel: ObservableObject {
     }
 
     private func handlePoseSample(_ raw: PoseResult?) {
+        if isManualPauseEnabled {
+            overlayLandmarks = []
+            showSkeleton = false
+            currentPhase = .paused
+            refreshWorkoutSubtitle()
+            return
+        }
+
         guard let raw else {
             let gate = trackingGate.update(pose: nil)
             trackingState = gate.state
@@ -661,6 +688,10 @@ struct Phase0TestView: View {
     @State private var repCountScale: CGFloat = 1.0
     @State private var sessionSaved = false
     @State private var showDebugPanel = false
+    @State private var showHistoryHub = false
+    @State private var showAICoachHub = false
+
+    init() {}
 
     var body: some View {
         ZStack {
@@ -676,6 +707,12 @@ struct Phase0TestView: View {
         }
         .fullScreenCover(isPresented: $showFaceOrientationTest) {
             FaceOrientationTestView()
+        }
+        .sheet(isPresented: $showHistoryHub) {
+            NavigationStack { HistoryView() }
+        }
+        .sheet(isPresented: $showAICoachHub) {
+            NavigationStack { AICoachView() }
         }
         .preferredColorScheme(.dark)
         .statusBarHidden(viewModel.isRunning)
@@ -739,10 +776,9 @@ struct Phase0TestView: View {
                 .padding(.top, NKSpacing.section)
 
                 VStack(spacing: NKSpacing.md) {
-                    setupStepRow(icon: "iphone", title: "Place Your Phone", text: "Lean it against a wall, screen facing you.")
-                    setupStepRow(icon: "iphone.gen3.radiowaves.left.and.right", title: "Keep It Portrait", text: "Stand it upright, not sideways.")
-                    setupStepRow(icon: "figure.strengthtraining.traditional", title: "Step Back", text: "Set up 2–3 feet away in plank.")
                     setupStepRow(icon: "light.max", title: "Light The Scene", text: "Keep your upper body clearly lit.")
+                    setupStepRow(icon: "iphone", title: "Place Your Phone Upright", text: "Lean it against a wall in portrait.")
+                    setupStepRow(icon: "figure.strengthtraining.traditional", title: "Step Back Into Plank", text: "Set up 2–3 feet away in plank.")
                 }
                 .padding(.horizontal, NKSpacing.xl)
                 .padding(.top, NKSpacing.xxl)
@@ -994,15 +1030,6 @@ struct Phase0TestView: View {
 
     private var cameraTopBar: some View {
         HStack(alignment: .top) {
-            VStack(alignment: .leading, spacing: NKSpacing.xs) {
-                trackingIndicator("BODY", ok: viewModel.bodyDetected)
-                trackingIndicator("LANDMARKS", ok: viewModel.landmarksVisible)
-                trackingIndicator("DISTANCE", ok: viewModel.distanceOK)
-            }
-            .padding(NKSpacing.md)
-            .background(Color.black.opacity(0.52))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-
             Spacer()
 
             VStack(alignment: .trailing, spacing: NKSpacing.micro) {
@@ -1021,20 +1048,6 @@ struct Phase0TestView: View {
             .padding(.vertical, NKSpacing.sm)
             .background(Color.black.opacity(0.52))
             .clipShape(RoundedRectangle(cornerRadius: 8))
-        }
-    }
-
-    private func trackingIndicator(_ label: String, ok: Bool) -> some View {
-        HStack(spacing: NKSpacing.xs) {
-            Circle()
-                .fill(ok ? Color.nkPrimary : Color.nkError)
-                .frame(width: 6, height: 6)
-                .shadow(color: ok ? Color.nkPrimary.opacity(0.6) : Color.nkError.opacity(0.6), radius: 4)
-            Text(label)
-                .font(.system(size: 9, weight: .bold))
-                .tracking(1)
-                .textCase(.uppercase)
-                .foregroundStyle(Color.nkOnSurface)
         }
     }
 
@@ -1059,9 +1072,17 @@ struct Phase0TestView: View {
                 .accessibilityLabel("\(viewModel.repCount) reps")
 
             Text(viewModel.workoutStateSubtitle.uppercased())
-                .font(.nkLabelSM)
-                .tracking(1.5)
-                .foregroundStyle(Color.nkOnSurfaceVariant)
+                .font(.system(size: 18, weight: .black))
+                .tracking(1.2)
+                .foregroundStyle(Color.nkOnSurface)
+                .padding(.horizontal, NKSpacing.lg)
+                .padding(.vertical, NKSpacing.sm)
+                .background(Color.black.opacity(0.56))
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(Color.white.opacity(0.08), lineWidth: 1)
+                )
 
             if viewModel.trackingState == .locked {
                 if viewModel.currentPhase == .down {
@@ -1109,32 +1130,17 @@ struct Phase0TestView: View {
                 .accessibilityHint("Ends the current set and shows your scores")
 
                 Button {
-                    viewModel.resetSession()
-                    viewModel.startCamera()
+                    viewModel.toggleManualPause()
                 } label: {
                     smallActionButtonLabel(
-                        icon: "arrow.counterclockwise",
-                        title: "Restart",
-                        subtitle: "Reset reps"
+                        icon: viewModel.isManualPauseEnabled ? "play.fill" : "pause.fill",
+                        title: viewModel.isManualPauseEnabled ? "Resume" : "Pause",
+                        subtitle: viewModel.isManualPauseEnabled ? "Continue set" : "Hold session"
                     )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Restart session")
-                .accessibilityHint("Clears rep count and restarts tracking")
-
-                #if DEBUG
-                Button {
-                    viewModel.switchProvider()
-                } label: {
-                    smallActionButtonLabel(
-                        icon: "waveform.path.ecg.rectangle",
-                        title: "Mode",
-                        subtitle: "Debug"
-                    )
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("Switch debug pose mode")
-                #endif
+                .accessibilityLabel(viewModel.isManualPauseEnabled ? "Resume session" : "Pause session")
+                .accessibilityHint("Temporarily pauses live counting without ending the set")
             }
         }
     }
@@ -1173,7 +1179,7 @@ struct Phase0TestView: View {
                         .tracking(-0.5)
                         .foregroundStyle(Color.nkOnSurface)
                     if let session = viewModel.completedSession {
-                        Text(session.startedAt.formatted(.dateTime.month(.abbreviated).day().hour().minute()))
+                        Text("\(session.relativeDayLabel) · \(session.timeLabel)")
                             .font(.nkBodyMD)
                             .foregroundStyle(Color.nkOnSurfaceVariant)
                     }
@@ -1235,23 +1241,17 @@ struct Phase0TestView: View {
                     .padding(.top, NKSpacing.xxl)
                 }
 
-                VStack(spacing: NKSpacing.md) {
-                    Button {
-                        sessionSaved = false
-                        viewModel.resetSession()
-                    } label: {
-                        HStack(spacing: NKSpacing.sm) {
-                            Image(systemName: "arrow.counterclockwise")
-                            Text("New Session")
-                        }
-                    }
-                    .buttonStyle(NKPrimaryButtonStyle())
+                if let session = viewModel.completedSession {
+                    summaryHighlights(session)
+                        .padding(.horizontal, NKSpacing.xl)
+                        .padding(.top, NKSpacing.xxl)
 
-                    Button { dismiss() } label: {
-                        Text("Done")
-                    }
-                    .buttonStyle(NKSecondaryButtonStyle())
+                    quickCoachCard(session)
+                        .padding(.horizontal, NKSpacing.xl)
+                        .padding(.top, NKSpacing.xxl)
                 }
+
+                postSessionHub
                 .padding(.horizontal, NKSpacing.xl)
                 .padding(.top, NKSpacing.section)
                 .padding(.bottom, NKSpacing.section)
@@ -1309,6 +1309,7 @@ struct Phase0TestView: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(NKSpacing.xl)
         .nkCardElevated()
+        .nkSelectiveGlass(cornerRadius: 12)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("\(label): \(value) out of 100, \(Color.nkScoreLabel(value))")
     }
@@ -1333,8 +1334,108 @@ struct Phase0TestView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .background(Color.nkSurfaceContainerLow)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
+                .nkSelectiveGlass(cornerRadius: 8)
             }
         }
+    }
+
+    private func summaryHighlights(_ session: PushupSession) -> some View {
+        VStack(alignment: .leading, spacing: NKSpacing.lg) {
+            Text("SESSION HIGHLIGHTS")
+                .nkPrimaryLabel()
+
+            VStack(alignment: .leading, spacing: NKSpacing.md) {
+                ForEach(session.sessionHighlights, id: \.self) { item in
+                    HStack(alignment: .top, spacing: NKSpacing.md) {
+                        Image(systemName: "sparkles")
+                            .foregroundStyle(Color.nkPrimary)
+                        Text(item)
+                            .font(.nkBodyMD)
+                            .foregroundStyle(Color.nkOnSurface)
+                    }
+                }
+            }
+            .padding(NKSpacing.xl)
+            .nkCardElevated()
+            .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary)
+        }
+    }
+
+    private func quickCoachCard(_ session: PushupSession) -> some View {
+        VStack(alignment: .leading, spacing: NKSpacing.lg) {
+            Text("QUICK COACH")
+                .nkPrimaryLabel()
+
+            VStack(alignment: .leading, spacing: NKSpacing.md) {
+                ForEach(session.quickCoachInsights, id: \.self) { insight in
+                    HStack(alignment: .top, spacing: NKSpacing.md) {
+                        Image(systemName: "bolt.fill")
+                            .foregroundStyle(Color.nkPrimary)
+                        Text(insight)
+                            .font(.nkBodyMD)
+                            .foregroundStyle(Color.nkOnSurface)
+                    }
+                }
+            }
+            .padding(NKSpacing.xl)
+            .nkCardElevated()
+            .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary)
+        }
+    }
+
+    private var postSessionHub: some View {
+        VStack(alignment: .leading, spacing: NKSpacing.lg) {
+            Text("NEXT")
+                .nkPrimaryLabel()
+
+            HStack(spacing: NKSpacing.md) {
+                Button {
+                    sessionSaved = false
+                    viewModel.resetSession()
+                } label: {
+                    postSessionAction(title: "Start Session", subtitle: "Run another set", icon: "play.fill")
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    showHistoryHub = true
+                } label: {
+                    postSessionAction(title: "Session History", subtitle: "Review past sets", icon: "clock.arrow.circlepath")
+                }
+                .buttonStyle(.plain)
+
+                Button {
+                    showAICoachHub = true
+                } label: {
+                    postSessionAction(title: "AI Coach", subtitle: "Copy session list", icon: "doc.on.clipboard")
+                }
+                .buttonStyle(.plain)
+            }
+
+            Button { dismiss() } label: {
+                Text("Done")
+            }
+            .buttonStyle(NKSecondaryButtonStyle())
+        }
+    }
+
+    private func postSessionAction(title: String, subtitle: String, icon: String) -> some View {
+        VStack(alignment: .leading, spacing: NKSpacing.sm) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(Color.nkPrimary)
+            Text(title)
+                .font(.nkTitleSM)
+                .foregroundStyle(Color.nkOnSurface)
+            Text(subtitle)
+                .font(.nkLabelXS)
+                .foregroundStyle(Color.nkOnSurfaceVariant)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(NKSpacing.lg)
+        .nkCardElevated()
+        .nkSelectiveGlass(cornerRadius: 12, tint: .nkPrimary)
     }
 
     // MARK: - Debug Panel (hidden by default)
